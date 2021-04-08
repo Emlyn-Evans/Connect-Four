@@ -5,6 +5,7 @@ class Board:
     def __init__(self, board_str):
 
         self.board = self.create_board(board_str)
+        self.filled_cols = self.compute_filled_cols()
 
         return
 
@@ -16,10 +17,53 @@ class Board:
 
         for row_str in rows:
 
-            row = list(row_str)
+            row = []
+
+            for char in row_str:
+
+                if char == 'r':
+
+                    row.append('X')
+
+                elif char == 'y':
+
+                    row.append('O')
+
+                else:
+
+                    row.append('.')
+
             board.append(row)
 
         return board
+
+    def compute_filled_cols(self):
+
+        cols = [0, 0, 0, 0, 0, 0, 0]
+
+        for row in self.board:
+
+            for col in range(len(row)):
+
+                if row[col] != '.':
+
+                    cols[col] += 1
+
+        return cols
+
+    def add_move(self, col, char):
+
+        if self.filled_cols[col] < 6:
+
+            self.board[self.filled_cols[col]][col] = char
+            self.filled_cols[col] += 1
+
+        else:
+
+            print("INVALID MOVE")
+
+        return
+
 
     def __str__(self):
 
@@ -37,6 +81,10 @@ class Board:
 
         return ret
 
+    def get_filled_cols(self):
+
+        return self.filled_cols
+
 
 
 
@@ -46,11 +94,12 @@ class State:
 
         self.board = Board(board_str)
         self.evaluation = None
+        self.utility = 0
 
         return
 
 
-    def utility(state):
+    def utility(self):
 
         # TODO
 
@@ -60,7 +109,7 @@ class State:
         return
 
 
-    def evaluation(state):
+    def evaluation(self):
 
         # TODO
 
@@ -71,7 +120,7 @@ class State:
         return
 
 
-    def score(state, player):
+    def score(self, player):
 
         # TODO
 
@@ -84,7 +133,7 @@ class State:
         return
 
 
-    def num_in_a_row(count, state, player):
+    def num_in_a_row(self, count, player):
 
         # return the number of times there exists count-in-a-row for player in state
 

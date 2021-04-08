@@ -30,48 +30,44 @@ def create_state():
     state = State(board_str)
 
     print(state.board)
-    
-    return
+    print(state.board.get_filled_cols())
 
-
-create_state()
-
-def utility(state):
-
-    # TODO
-
-    # if red is winner, return 10000
-    # if yellow is winner, return -10000
+    adjust_state(state)
 
     return
 
+def adjust_state(state):
 
-def evaluation(state):
+    # Adjust board:
+    state.board.add_move(0, 'X')
+    state.board.add_move(1, 'X')
+    state.board.add_move(2, 'X')
+    state.board.add_move(3, 'X')
+    state.board.add_move(4, 'X')
+    state.board.add_move(5, 'X')
+    state.board.add_move(6, 'X')
+    print(state.board)
+    print(state.board.get_filled_cols())
 
-    # TODO
-
-    # eval = score(state, red player) - score(state, yellow player)
-    # return eval
-
-
-    return
-
-
-def score(state, player):
-
-    # TODO
-
-    # score = number of player tokens
-    # score += 10 * num_in_a_row(2, state, player)
-    # score += 100 * num_in_a_row(3, state, player)
-    # score += 1000 * num_in_a_row(4 or more, state, player)
-    # return score
+    state.board.add_move(2, 'O')
+    state.board.add_move(2, 'O')
+    print(state.board)
+    print(state.board.get_filled_cols())
 
     return
 
 
-def num_in_a_row(count, state, player):
+def example_evaluation():
 
-    # return the number of times there exists count-in-a-row for player in state
+    board_str = "..yyrrr,..ryryr,....y..,.......,.......,......."
+    state = State(board_str)
+
+    print(state.board)
+    print(state.board.get_filled_cols())
+
 
     return
+
+
+# create_state()
+example_evaluation()
