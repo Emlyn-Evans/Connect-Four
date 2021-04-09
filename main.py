@@ -113,13 +113,85 @@ def dfs_print(node, depth, max_depth):
     return
 
 
+def compute_minimax(node, depth, max_depth):
+
+    if node.state.utility != 0:
+
+        return node.state.utility
+
+    if depth == max_depth:
+
+        node.minimax = node.state.evaluation
+        return node.minimax
+
+    if node.last_move == "O":
+
+        alpha = None
+        alpha_index = None
+
+        for i in range(len(node.children)):
+
+            ret = compute_minimax(node.children[i], depth + 1, max_depth)
+
+            if depth == 0:
+                print(
+                    f"MAX: {node.children[i].name}: {ret} for child {i} in depth {depth}"
+                )
+
+            if alpha is None:
+
+                alpha = ret
+                alpha_index = i
+
+            elif ret > alpha:
+
+                alpha = ret
+                alpha_index = i
+
+        print(f"Taking max: {alpha} in depth {depth}")
+        node.minimax = alpha
+        node.minimax_index = alpha_index
+
+    else:
+
+        beta = None
+        beta_index = None
+
+        for i in range(len(node.children)):
+
+            ret = compute_minimax(node.children[i], depth + 1, max_depth)
+
+            if depth == 1:
+                print(
+                    f"MIN: {node.children[i].name}: {ret} for child {i} in depth {depth}"
+                )
+
+            if beta is None:
+
+                beta = ret
+                beta_index = i
+
+            elif ret < beta:
+
+                beta = ret
+                beta_index = i
+
+        print(f"Taking min: {beta} in depth {depth}")
+
+        node.minimax = beta
+        node.minimax_index = beta_index
+
+    return node.minimax
+
+
 def set_up_state():
 
     # Inputs
-    # board_str = "yryrrry,.rryyrr,.yyyrr.,.ryy.y.,...r...,......."
+    # board_str = "yryrrry,.rry.r.,.yyy.r.,.ryy.y.,...r...,......."
+    # board_str = ".yrry..,..ryr..,..yry..,.......,.......,......."
     board_str = ".......,.......,.......,.......,.......,......."
-    max_depth = 4
-    last_move = "X"
+    max_depth = 5
+    last_move = "O"
 
     # Initialise
     state = State(board_str)
@@ -128,7 +200,27 @@ def set_up_state():
 
     recursively_generate_children(head, 0, max_depth)
 
-    dfs_print(head, 0, max_depth)
+    compute_minimax(head, 0, max_depth)
+
+    current_node = head
+
+    while len(current_node.children) != 0:
+
+        print(
+            f"Current Node: {current_node.name} : Minimax: {current_node.minimax} : Next Child: {current_node.minimax_index}"
+        )
+        print(current_node.state.board)
+        print(current_node.state.print_evaluation())
+
+        current_node = current_node.children[current_node.minimax_index]
+
+    print(
+        f"Current Node: {current_node.name} : Minimax: {current_node.minimax} : Next Child: {current_node.minimax_index}"
+    )
+    print(current_node.state.board)
+    print(current_node.state.print_evaluation())
+
+    # dfs_print(head, 0, max_depth)
 
 
 # create_state()

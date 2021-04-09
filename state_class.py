@@ -403,6 +403,7 @@ class Node:
         self.parents = []
         self.children = []
         self.minimax = 0
+        self.minimax_index = 0
 
     def add_parent(self, parent):
 
@@ -414,43 +415,45 @@ class Node:
 
     def generate_children(self):
 
-        if len(self.state.board.filled_cols) == 0:
+        if self.state.utility == 0:
 
-            # print("Computing cols")
-            self.state.board.compute_filled_cols()
-            # print(f"Cols: {self.state.board.filled_cols}")
+            if len(self.state.board.filled_cols) == 0:
 
-        for i in range(len(self.state.board.filled_cols)):
+                # print("Computing cols")
+                self.state.board.compute_filled_cols()
+                # print(f"Cols: {self.state.board.filled_cols}")
 
-            if self.state.board.filled_cols[i] < 6:
+            for i in range(len(self.state.board.filled_cols)):
 
-                # print(f"Creating new state for col {i}")
+                if self.state.board.filled_cols[i] < 6:
 
-                new_state = State()
-                new_state.board = self.state.board.copy_board()
-                new_node = Node(new_state, self.name + str(i))
-                new_node.add_parent(self)
-                self.add_child(new_node)
+                    # print(f"Creating new state for col {i}")
 
-                move = None
+                    new_state = State()
+                    new_state.board = self.state.board.copy_board()
+                    new_node = Node(new_state, self.name + str(i))
+                    new_node.add_parent(self)
+                    self.add_child(new_node)
 
-                # Add new move to col
-                if self.last_move == "X":
+                    move = None
 
-                    move = "O"
-                    new_node.last_move = "O"
+                    # Add new move to col
+                    if self.last_move == "X":
 
-                else:
+                        move = "O"
+                        new_node.last_move = "O"
 
-                    move = "X"
-                    new_node.last_move = "X"
+                    else:
 
-                # print(f"i = {i}")
-                # print(f"Filled cols col: {new_node.state.board.filled_cols}")
+                        move = "X"
+                        new_node.last_move = "X"
 
-                new_node.state.board.add_move(i, move)
+                    # print(f"i = {i}")
+                    # print(f"Filled cols col: {new_node.state.board.filled_cols}")
 
-                # Update the state evaluation
-                new_node.state.compute_evaluation()
+                    new_node.state.board.add_move(i, move)
 
-                # new_node.state.print_evaluation()
+                    # Update the state evaluation
+                    new_node.state.compute_evaluation()
+
+                    # new_node.state.print_evaluation()
