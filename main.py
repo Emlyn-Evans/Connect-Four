@@ -1,7 +1,5 @@
-
 import sys
 from state_class import Board, State
-
 
 
 def print_arguments():
@@ -18,10 +16,10 @@ def print_arguments():
 
     return
 
+
 def get_board_str():
 
     return sys.argv[1]
-
 
 
 def create_state():
@@ -36,21 +34,22 @@ def create_state():
 
     return
 
+
 def adjust_state(state):
 
     # Adjust board:
-    state.board.add_move(0, 'X')
-    state.board.add_move(1, 'X')
-    state.board.add_move(2, 'X')
-    state.board.add_move(3, 'X')
-    state.board.add_move(4, 'X')
-    state.board.add_move(5, 'X')
-    state.board.add_move(6, 'X')
+    state.board.add_move(0, "X")
+    state.board.add_move(1, "X")
+    state.board.add_move(2, "X")
+    state.board.add_move(3, "X")
+    state.board.add_move(4, "X")
+    state.board.add_move(5, "X")
+    state.board.add_move(6, "X")
     print(state.board)
     print(state.board.get_filled_cols())
 
-    state.board.add_move(2, 'O')
-    state.board.add_move(2, 'O')
+    state.board.add_move(2, "O")
+    state.board.add_move(2, "O")
     print(state.board)
     print(state.board.get_filled_cols())
 
@@ -60,11 +59,15 @@ def adjust_state(state):
 def example_evaluation():
 
     board_str = "..yyrrr,..ryryr,....y..,.......,.......,......."
-    state = State(board_str)
+    test_2 = "ryryyyr,.yyrryy,.rrryy.,.yrrrr.,...y...,......."
+    test_2 = "yryrrry,.rryyrr,.yyyrr.,.ryyyy.,...r...,......."
+    state = State(test_2)
 
     print(state.board)
     print(state.board.get_filled_cols())
 
+    state.compute_evaluation()
+    state.print_evaluation()
 
     return
 
