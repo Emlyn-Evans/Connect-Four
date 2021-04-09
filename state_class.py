@@ -8,22 +8,27 @@ class Token:
         # r = 0, ur = 1, u = 2, ul = 3
         self.directions = [1, 1, 1, 1]
 
+    def copy_token(self):
+
+        token = Token(self.char)
+
+        return token
+
     def __str__(self):
 
         return self.token
 
 
 class Board:
-    def __init__(self, board_str):
+    def __init__(self):
 
-        self.board = self.create_board(board_str)
-        self.filled_cols = self.compute_filled_cols()
+        self.board = []
+        self.filled_cols = []
 
         return
 
     def create_board(self, board_str):
 
-        board = []
         rows = board_str.split(",")
 
         for row_str in rows:
@@ -48,13 +53,13 @@ class Board:
 
                 row.append(token)
 
-            board.append(row)
+            self.board.append(row)
 
-        return board
+        return
 
     def compute_filled_cols(self):
 
-        cols = [0, 0, 0, 0, 0, 0, 0]
+        self.filled_cols = [0, 0, 0, 0, 0, 0, 0]
 
         for row in self.board:
 
@@ -62,22 +67,61 @@ class Board:
 
                 if row[col].char != ".":
 
-                    cols[col] += 1
+                    # print(f"Adding 1 to col {col}")
 
-        return cols
+                    self.filled_cols[col] += 1
+
+        return
 
     def add_move(self, col, char):
 
+        token = self.board[self.filled_cols[col]][col]
+
+        # print(f"Adding new move: {col} with {char}")
+        # print(f"Before: {token.char}")
+
         if self.filled_cols[col] < 6:
 
-            self.board[self.filled_cols[col]][col].char = char
+            # print("We can add it")
+
+            token.char = char
             self.filled_cols[col] += 1
 
         else:
 
             print("INVALID MOVE")
 
+        # print(f"After: {token.char}")
+
         return
+
+    def copy_board(self):
+
+        board = Board()
+
+        for r in self.board:
+
+            row = []
+
+            for tok in r:
+
+                token = tok.copy_token()
+
+                row.append(token)
+
+            board.board.append(row)
+
+        # print(f"Previous filled cols: {self.filled_cols}")
+
+        for i in self.filled_cols:
+
+            # print(f"Adding : {i}")
+
+            board.filled_cols.append(i)
+
+        # print(f"New board filled cols: {board.filled_cols}")
+
+        return board
 
     def __str__(self):
 
@@ -101,16 +145,21 @@ class Board:
 
 
 class State:
-    def __init__(self, board_str):
+    def __init__(self, board_str=None):
 
-        self.board = Board(board_str)
+        self.board = Board()
+
+        if board_str is not None:
+
+            self.board.create_board(board_str)
+
         self.score_X = 0
         self.score_O = 0
         self.one_multiplier = 1
         self.two_multiplier = 10
         self.three_multiplier = 100
         self.four_multiplier = 1000
-        self.evaluation = None
+        self.evaluation = 0
         self.utility = 0
 
         return
@@ -219,10 +268,12 @@ class State:
                 if token.char == "X":
 
                     self.score_X += self.four_multiplier
+                    self.utility = 10000
 
                 else:
 
                     self.score_O += self.four_multiplier
+                    self.utility = -10000
 
     def compute_evaluation(self):
 
@@ -340,5 +391,66 @@ class State:
         print(f"Score X: {self.score_X}")
         print(f"Score O: {self.score_O}")
         print(f"Evaluation: {self.evaluation}")
+        print(f"Utility: {self.utility}")
 
-        return
+
+class Node:
+    def __init__(self, state, name):
+
+        self.name = name
+        self.state = state
+        self.last_move = None
+        self.parents = []
+        self.children = []
+        self.minimax = 0
+
+    def add_parent(self, parent):
+
+        self.parents.append(parent)
+
+    def add_child(self, child):
+
+        self.children.append(child)
+
+    def generate_children(self):
+
+        if len(self.state.board.filled_cols) == 0:
+
+            # print("Computing cols")
+            self.state.board.compute_filled_cols()
+            # print(f"Cols: {self.state.board.filled_cols}")
+
+        for i in range(len(self.state.board.filled_cols)):
+
+            if self.state.board.filled_cols[i] < 6:
+
+                # print(f"Creating new state for col {i}")
+
+                new_state = State()
+                new_state.board = self.state.board.copy_board()
+                new_node = Node(new_state, self.name + str(i))
+                new_node.add_parent(self)
+                self.add_child(new_node)
+
+                move = None
+
+                # Add new move to col
+                if self.last_move == "X":
+
+                    move = "O"
+                    new_node.last_move = "O"
+
+                else:
+
+                    move = "X"
+                    new_node.last_move = "X"
+
+                # print(f"i = {i}")
+                # print(f"Filled cols col: {new_node.state.board.filled_cols}")
+
+                new_node.state.board.add_move(i, move)
+
+                # Update the state evaluation
+                new_node.state.compute_evaluation()
+
+                # new_node.state.print_evaluation()
