@@ -55,6 +55,8 @@ class Board:
 
             self.board.append(row)
 
+        self.compute_filled_cols()
+
         return
 
     def compute_filled_cols(self):
@@ -152,6 +154,7 @@ class State:
         if board_str is not None:
 
             self.board.create_board(board_str)
+            self.compute_evaluation()
 
         self.score_X = 0
         self.score_O = 0
@@ -161,59 +164,6 @@ class State:
         self.four_multiplier = 1000
         self.evaluation = 0
         self.utility = 0
-
-        return
-
-    def utility(self):
-
-        # TODO
-
-        # if red is winner, return 10000
-        # if yellow is winner, return -10000
-
-        return
-
-    def evaluation(self):
-
-        # TODO
-
-        # eval = score(state, red player) - score(state, yellow player)
-        # return eval
-
-        return
-
-    def score(self, player):
-
-        # TODO
-
-        # score = number of player tokens
-        # score += 10 * num_in_a_row(2, state, player)
-        # score += 100 * num_in_a_row(3, state, player)
-        # score += 1000 * num_in_a_row(4 or more, state, player)
-        # return score
-
-        return
-
-    def num_in_a_row(self, count, player):
-
-        # return the number of times there exists count-in-a-row for player in
-        # state
-
-        # When checking a coordinate row-col, we first check horizontally. We
-        # track two variables, the first being the number of same tokens to the
-        # left (or right) as well as if the token to the left is empty or not.
-
-        # We can then add the left and right together.
-        # WE can also check if the left or right was empty, we don't need to
-        # check the upper diagonals as no token can exist there.
-
-        # There has to be some sort of iterative solution we can build. Maybe we
-        # track the left and upper slots. AS we move right, we continually add
-        # to the horizontal count until we hit a blank or other coloured token.
-        # As we move up, we add until we hit nothing or the other token. When we
-        # do, we count the number in a row.
-
-        # So we set/check 4 values: right, upper right, upper, upper left.
 
         return
 
@@ -291,8 +241,6 @@ class State:
                 if token.char != ".":
 
                     last_token = col
-
-                    # print(f"Checking token at {row},{col} : {token.char}")
 
                     self.update_score(token, -1)
 
