@@ -16,6 +16,7 @@ class Board:
         self.two_multiplier = 10
         self.three_multiplier = 100
         self.four_multiplier = 1000
+        self.n_states = 0
 
     def compute_filled_cols(self):
 
@@ -346,6 +347,8 @@ class State:
         row = board.filled_cols[col] - 1
         token = board.get_token(col, row)
 
+        # print(f"TOKEN: {token.char} at row = {row}, col = {col}")
+
         self.update_score(board, token, -1, 1)
 
         # Check horizontal
@@ -410,7 +413,7 @@ class State:
         j = row
         n_prev = 0
 
-        while j < 6:
+        while j < 5:
 
             next_token = board.get_token(i, j + 1)
 
@@ -420,7 +423,7 @@ class State:
                 j += 1
 
             else:
-                j = 6
+                j = 5
 
         self.update_score(board, token, n_prev, -1)
         self.update_score(board, token, n_vertical, 1)
@@ -449,7 +452,7 @@ class State:
         j = row
         n_prev = 0
 
-        while j < 6 and i > 0:
+        while j < 5 and i > 0:
 
             next_token = board.get_token(i - 1, j + 1)
 
@@ -491,7 +494,7 @@ class State:
         j = row
         n_prev = 0
 
-        while j < 6 and i < 6:
+        while j < 5 and i < 6:
 
             next_token = board.get_token(i + 1, j + 1)
 
