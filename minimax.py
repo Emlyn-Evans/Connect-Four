@@ -1,6 +1,6 @@
 # A file to house the minimax algorithm logic
 
-from state_class import Node, State, Board
+from classes import Board, State
 
 
 def init():
@@ -11,19 +11,41 @@ def init():
     max_depth = 4
     last_move = "O"
 
-    state = State(board_str)
-    head = Node(state, ".")
-    head.last_move = last_move
+    board = Board()
+    board.create_board_from_str(board_str)
+    head = State(".", last_move)
+    head.compute_evaluation(board)
 
-    return head
+    return head, board
 
 
-def test_1(head):
+def test_1(head, board):
 
-    print(head.state.board)
-    head.state.print_evaluation()
+    print(board)
+    print(head)
+
+    board.add_move(5, "X")
+    child = head.add_child(board, 5)
+
+    print(board)
+    print(child)
+
+    board.add_move(4, "X")
+    child_2 = child.add_child(board, 4)
+
+    print(board)
+    print(child_2)
+
+    board.add_move(4, "O")
+    child_3 = child_2.add_child(board, 4)
+
+    print(board)
+    print(child_3)
+
+    # Don;t call add child if state is goal state
 
     return
 
 
-test_1(init())
+head, board = init()
+test_1(head, board)
