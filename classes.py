@@ -201,6 +201,7 @@ class State:
             for col in range(start_col, end_col + 1):
 
                 token = board.get_token(col, row)
+                token.directions = [1, 1, 1, 1]
 
                 if token.char != ".":
 
@@ -300,11 +301,11 @@ class State:
 
             if token.char == "X":
 
-                self.score_X += board.one_multiplier
+                self.score_X += board.one_multiplier * weight
 
             else:
 
-                self.score_O += board.one_multiplier
+                self.score_O += board.one_multiplier * weight
 
         elif num == 1:
 
@@ -538,9 +539,9 @@ class State:
 
     def __str__(self):
 
-        ret = f"\nState: {self.name}\nScore X: {self.score_X}\n"
-        ret += f"Score O: {self.score_O}\n"
-        ret += f"Eval: {self.evaluation} | Utility: {self.utility}\n"
+        ret = f"State: {self.name} | Score X: {self.score_X}"
+        ret += f" | Score O: {self.score_O} | "
+        ret += f"Eval: {self.evaluation} | Utility: {self.utility} | "
         ret += f"Value: {self.value} | Optimal Child: {self.opt_child}\n"
 
         return ret
