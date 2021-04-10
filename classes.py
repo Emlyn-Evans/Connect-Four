@@ -191,6 +191,15 @@ class State:
 
     def compute_evaluation(self, board):
 
+        self.score_X = 0
+        self.score_O = 0
+
+        for row in board.grid:
+
+            for tok in row:
+
+                tok.directions = [1, 1, 1, 1]
+
         start_col = 0
         end_col = 6
 
@@ -200,13 +209,17 @@ class State:
 
             for col in range(start_col, end_col + 1):
 
+                # print(f"Col range: {start_col} : {end_col}")
+
                 token = board.get_token(col, row)
-                token.directions = [1, 1, 1, 1]
+
+                # print(f"Token {token.char} at {row},{col}")
 
                 if token.char != ".":
 
                     last_token = col
 
+                    # print(f"Adding 1 for {token.char} token at {row},{col}")
                     self.compute_score(board, token, -1)
 
                     # Check right and upper right
@@ -280,7 +293,9 @@ class State:
 
                     if col == start_col + 1:
 
-                        start_col = col
+                        if board.get_token(col - 1, row).char == ".":
+
+                            start_col = col
 
                     if col == end_col:
 
@@ -301,11 +316,11 @@ class State:
 
             if token.char == "X":
 
-                self.score_X += board.one_multiplier * weight
+                self.score_X += board.one_multiplier
 
             else:
 
-                self.score_O += board.one_multiplier * weight
+                self.score_O += board.one_multiplier
 
         elif num == 1:
 
