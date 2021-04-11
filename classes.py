@@ -557,6 +557,9 @@ class State:
         ret = f"State: {self.name} | Score X: {self.score_X}"
         ret += f" | Score O: {self.score_O} | "
         ret += f"Eval: {self.evaluation} | Utility: {self.utility} | "
-        ret += f"Value: {self.value} | Optimal Child: {self.opt_child}\n"
+        ret += f"Value: {self.value} | Optimal Child: {self.opt_child} | "
+
+        if self.parent is not None:
+            ret += f"Parent value: {self.parent.value}\n"
 
         return ret

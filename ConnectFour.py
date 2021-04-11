@@ -1,6 +1,7 @@
 # A file to house the minimax algorithm logic
 import sys
 from classes import Board, State
+from alpha_beta import alpha_beta
 
 
 def tree_print(state):
@@ -142,12 +143,12 @@ def alpha_beta_recursion(board, state, depth, max_depth):
 
     board.n_states += 1
 
-    print(depth * "- " + f"Checking state: {state.name}")
+    # print(depth * "- " + f"Checking state: {state.name}")
 
     # Check goal state
     if state.utility != 0:
 
-        print(depth * "- " + f"Goal state: {state.utility}")
+        # print(depth * "- " + f"Goal state: {state.utility}")
 
         state.value = state.utility
         return state.value
@@ -155,7 +156,7 @@ def alpha_beta_recursion(board, state, depth, max_depth):
     # Check leaf
     if depth == max_depth:
 
-        print(depth * "- " + f"Leaf state: {state.evaluation}")
+        # print(depth * "- " + f"Leaf state: {state.evaluation}")
 
         state.value = state.evaluation
         return state.value
@@ -170,7 +171,7 @@ def alpha_beta_recursion(board, state, depth, max_depth):
     else:
         move = "O"
 
-    print(depth * "- " + "Generating children...")
+    # print(depth * "- " + "Generating children...")
 
     for i in range(len(board.filled_cols)):
 
@@ -196,7 +197,7 @@ def alpha_beta_recursion(board, state, depth, max_depth):
             # ##
 
             value = alpha_beta_recursion(board, child, depth + 1, max_depth)
-            print(depth * "- " + f"Value received from child {i}: {value}")
+            # print(depth * "- " + f"Value received from child {i}: {value}")
             board.remove_move(i)
 
             if state.value is None:
@@ -215,10 +216,10 @@ def alpha_beta_recursion(board, state, depth, max_depth):
                     state.value = value
                     state.opt_child = i
 
-                    print(
-                        depth * "- "
-                        + f"Maximising {state.name} value from {old_value} to {value}"
-                    )
+                    # print(
+                    #     depth * "- "
+                    #     + f"Maximising {state.name} value from {old_value} to {value}"
+                    # )
 
                 if state.value == 10000:
 
@@ -229,17 +230,17 @@ def alpha_beta_recursion(board, state, depth, max_depth):
 
                     if state.parent.value is not None:
 
-                        print(
-                            depth * "- "
-                            + f"Parent {state.parent.name} value: {state.parent.value}"
-                        )
+                        # print(
+                        #     depth * "- "
+                        #     + f"Parent {state.parent.name} value: {state.parent.value}"
+                        # )
 
                         if state.value >= state.parent.value:
 
-                            print(
-                                depth * "- "
-                                + f"Beta pruning as {state.value} >= {state.parent.value}"
-                            )
+                            # print(
+                            #     depth * "- "
+                            #     + f"Beta pruning as {state.value} >= {state.parent.value}"
+                            # )
 
                             return state.value
 
@@ -253,10 +254,10 @@ def alpha_beta_recursion(board, state, depth, max_depth):
                     state.value = value
                     state.opt_child = i
 
-                    print(
-                        depth * "- "
-                        + f"Minimising {state.name} value from {old_value} to {value}"
-                    )
+                    # print(
+                    #     depth * "- "
+                    #     + f"Minimising {state.name} value from {old_value} to {value}"
+                    # )
 
                 if state.value == -10000:
 
@@ -267,17 +268,17 @@ def alpha_beta_recursion(board, state, depth, max_depth):
 
                     if state.parent.value is not None:
 
-                        print(
-                            depth * "- "
-                            + f"Parent {state.parent.name} value: {state.parent.value}"
-                        )
+                        # print(
+                        #     depth * "- "
+                        #     + f"Parent {state.parent.name} value: {state.parent.value}"
+                        # )
 
                         if state.value <= state.parent.value:
 
-                            print(
-                                depth * "- "
-                                + f"Alpha pruning as {state.value} <= {state.parent.value}"
-                            )
+                            # print(
+                            #     depth * "- "
+                            #     + f"Alpha pruning as {state.value} <= {state.parent.value}"
+                            # )
 
                             return state.value
 
@@ -522,6 +523,30 @@ def test_alpha_beta():
     print(board.n_states)
 
 
+def alpha_beta_w2(board_str, turn, max_depth):
+
+    if turn == "red":
+
+        last_move = "O"
+
+    else:
+
+        last_move = "X"
+
+    board = Board()
+    board.create_board_from_str(board_str)
+    root = State(".", last_move)
+    root.compute_evaluation(board)
+
+    alpha_beta(board, root, 0, max_depth, -10001, 10001)
+
+    # tree_print(root)
+    # tree_search_print(board, root)
+
+    print(root.opt_child)
+    print(board.n_states)
+
+
 if sys.argv[3] == "M":
 
     minimax_wrapper(sys.argv[1], sys.argv[2], int(sys.argv[4]))
@@ -529,6 +554,10 @@ if sys.argv[3] == "M":
 elif sys.argv[3] == "A":
 
     alpha_beta_wrapper(sys.argv[1], sys.argv[2], int(sys.argv[4]))
+
+elif sys.argv[3] == "A1":
+
+    alpha_beta_w2(sys.argv[1], sys.argv[2], int(sys.argv[4]))
 
 else:
 
