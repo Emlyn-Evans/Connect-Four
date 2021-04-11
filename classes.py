@@ -26,8 +26,6 @@ class Board:
 
                 if row[col].char != ".":
 
-                    # print(f"Adding 1 to col {col}")
-
                     self.filled_cols[col] += 1
 
         return
@@ -135,8 +133,6 @@ class State:
 
         if index == -1:
 
-            # print(f"Adding 1 to {token.char}")
-
             if token.char == "X":
 
                 self.score_X += board.one_multiplier
@@ -153,8 +149,6 @@ class State:
 
             elif token.directions[index] == 2:
 
-                # print(f"Adding 10 to {token.char}")
-
                 if token.char == "X":
 
                     self.score_X += board.two_multiplier
@@ -165,8 +159,6 @@ class State:
 
             elif token.directions[index] == 3:
 
-                # print(f"Adding 100 to {token.char}")
-
                 if token.char == "X":
 
                     self.score_X += board.three_multiplier
@@ -176,8 +168,6 @@ class State:
                     self.score_O += board.three_multiplier
 
             elif token.directions[index] >= 4:
-
-                # print(f"Adding 1000 to {token.char}")
 
                 if token.char == "X":
 
@@ -209,17 +199,11 @@ class State:
 
             for col in range(start_col, end_col + 1):
 
-                # print(f"Col range: {start_col} : {end_col}")
-
                 token = board.get_token(col, row)
-
-                # print(f"Token {token.char} at {row},{col}")
 
                 if token.char != ".":
 
                     last_token = col
-
-                    # print(f"Adding 1 for {token.char} token at {row},{col}")
                     self.compute_score(board, token, -1)
 
                     # Check right and upper right
@@ -362,9 +346,6 @@ class State:
 
         row = board.filled_cols[col] - 1
         token = board.get_token(col, row)
-
-        # print(f"TOKEN: {token.char} at row = {row}, col = {col}")
-
         self.update_score(board, token, -1, 1)
 
         # Check horizontal
@@ -545,9 +526,7 @@ class State:
         child = State(self.name + str(col), last_move, self)
         child.score_X = self.score_X
         child.score_O = self.score_O
-
         child.update_evaluation(board, col)
-
         self.children.append(child)
 
         return child
