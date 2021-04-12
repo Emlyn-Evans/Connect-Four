@@ -6,11 +6,15 @@ class Board:
         self.player = player
         self.pos = None
         self.board = None
+        self.moves_player = None
+        self.moves_board = None
 
     def create_board_from_str(self, board_str):
 
         player_bits = ""
         board_bits = ""
+        moves_player = 0
+        moves_board = 0
 
         rows = board_str.split(",")
 
@@ -25,11 +29,14 @@ class Board:
 
                     player_bits += "1"
                     board_bits += "1"
+                    moves_player += 1
+                    moves_board += 1
 
                 elif rows[i][j] == "y":
 
                     player_bits += "0"
                     board_bits += "1"
+                    moves_board += 1
 
                 else:
 
@@ -38,6 +45,8 @@ class Board:
 
         self.pos = int(player_bits, 2)
         self.board = int(board_bits, 2)
+        self.moves_player = moves_player
+        self.moves_board = moves_board
 
         return
 
@@ -92,9 +101,16 @@ class Board:
         # Check if legal move
         if self.check_filled(col) == 0:
 
+            self.moves_player += 1
+            self.moves_board += 1
+
             # Switch player and add move to board
             self.switch_player()
+            # print(f"Slot:              {self.get_bin(1 << (7 * col))}")
+            # print(f"Board + Slot:      {self.get_bin(self.board + (1 << (7 * col)))}")
+            # print(f"OR: Board before:  {self.get_bin(self.board)}")
             self.board = self.board | self.board + (1 << (7 * col))
+            # print(f"Result:            {self.get_bin(self.board)}")
 
         else:
 
@@ -113,8 +129,30 @@ class Board:
                 self.switch_player()
 
             # Undo board move
-            self.board = self.board & self.board - (1 << (7 * col))
+            # print(f"Col:                  {self.get_bin(1 << (7 * col))}")
+            # print(f"Board:                {self.get_bin(self.board)}")
+            # print(
+            #     f"Board + Col:          {self.get_bin(self.board + (1 << (7 * col)))}"
+            # )
+            # print(
+            #     f"B + C ^ B:            {self.get_bin(self.board + (1 << (7 * col)) ^ self.board)}"
+            # )
+            # print(
+            #     f"(B + C ^ B) + C:      {self.get_bin((self.board + (1 << (7 * col)) ^ self.board) + (1 << (7 * col)))}"
+            # )
+            # print(
+            #     f"(B + C ^ B) + C >> 2: {self.get_bin(((self.board + (1 << (7 * col)) ^ self.board) + (1 << (7 * col))) >> 2)}"
+            # )
+
+            slot = (
+                (self.board + (1 << (7 * col)) ^ self.board) + (1 << (7 * col))
+            ) >> 2
+            self.board = self.board - slot
+            # print(f"Result:               {self.get_bin(self.board)}")
             self.switch_player()
+
+            self.moves_player -= 1
+            self.moves_board -= 1
 
         else:
 
@@ -126,6 +164,7 @@ class Board:
 
         # Flip the pos
         self.pos = self.get_player_pos(self.player) ^ self.board
+        self.moves_player = self.moves_board - self.moves_player
 
         if self.player == "X":
 
@@ -149,6 +188,17 @@ class Board:
         index = len(self.get_bin(self.board)) - 1 - ((col * (self.rows + 1)) + row)
 
         return index
+
+    def count_ones(self, num):
+
+        count = 0
+
+        while num != 0:
+
+            num = num & (num - 1)
+            count += 1
+
+        return count
 
     def get_player_pos(self, player):
 

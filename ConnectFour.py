@@ -27,8 +27,32 @@ def init(board_str, turn):
     print(f"Player turn: {board.player}")
     print(f"Win for X: {board.check_win('X')}")
     print(f"Win for O: {board.check_win('O')}")
+    print(f"Board moves: {board.moves_board} : Player moves: {board.moves_player}")
 
-    col = 5
+    board.add_move(4)
+
+    print(board)
+    print(f"Player turn: {board.player}")
+    print(f"Win for X: {board.check_win('X')}")
+    print(f"Win for O: {board.check_win('O')}")
+    print(f"Board moves: {board.moves_board} : Player moves: {board.moves_player}")
+
+    board.remove_move(4)
+
+    print(board)
+    print(f"Player turn: {board.player}")
+    print(f"Win for X: {board.check_win('X')}")
+    print(f"Win for O: {board.check_win('O')}")
+    print(f"Board moves: {board.moves_board} : Player moves: {board.moves_player}")
+
+    # test_move(board)
+
+    return
+
+
+def test_move(board):
+
+    col = 6
     print(f"Adding move to col {col}")
 
     board.add_move(col)
@@ -42,6 +66,36 @@ def init(board_str, turn):
 
     print(board)
     print(f"Player turn: {board.player}")
+
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+    print(f"Adding move to col {col}")
+    board.add_move(col)
+    print(board)
+
+    # Remove
+    print(f"Removing move")
+    board.remove_move(col)
+    print(board)
+    print(f"Removing move")
+    board.remove_move(col)
+    print(board)
 
     return
 
