@@ -8,6 +8,10 @@ class Board:
         self.board = None
         self.moves_player = None
         self.moves_board = None
+        self.n_nodes = 0
+        self.n_terminal = 0
+        self.n_depth = 0
+        self.order = [3, 2, 4, 1, 5, 0, 6]
 
     def create_board_from_str(self, board_str):
 
@@ -123,10 +127,10 @@ class Board:
         # If the board has a move in the column
         if int(self.get_bin(self.board)[self.coord_to_index(0, col)]):
 
-            # If that move is the current player move
-            if int(self.get_bin(self.pos)[self.coord_to_index(0, col)]):
+            # # If that move is the current player move
+            # if int(self.get_bin(self.pos)[self.coord_to_index(0, col)]):
 
-                self.switch_player()
+            #     self.switch_player()
 
             # Undo board move
             # print(f"Col:                  {self.get_bin(1 << (7 * col))}")
@@ -165,21 +169,29 @@ class Board:
         # Flip the pos
         self.pos = self.get_player_pos(self.player) ^ self.board
         self.moves_player = self.moves_board - self.moves_player
+        self.player = self.get_other_player()
+
+        return
+
+    def get_other_player(self):
+
+        player = None
 
         if self.player == "X":
 
-            self.player = "O"
+            player = "O"
 
         else:
 
-            self.player = "X"
+            player = "X"
 
-        return
+        return player
 
     def check_filled(self, col):
 
         index = self.coord_to_index(self.rows - 1, col)
         ret = int(self.get_bin(self.board)[index])
+        # print(f"Index: {index} | Bit: {ret}")
 
         return ret
 
@@ -253,51 +265,55 @@ class Board:
         return ret
 
 
-# Haven't dealt with this yet
-
-
-class State:
-    def __init__(self, name, move, parent=None):
+class Node:
+    def __init__(self, name, player, depth, parent=None):
 
         self.name = name
-        self.move = move
-        self.score_X = 0
-        self.score_O = 0
-        self.evaluation = 0
-        self.utility = 0
+        self.player = player
+        self.depth = depth
+        self.utility = None
+        self.value = None
         self.parent = parent
         self.children = []
-        self.value = None
+        self.n_children = 0
         self.opt_child = None
+        self.opt_col = None
 
-    def compute_score(self, board, token, index):
+    def compute_utility(self, board):
 
-        return
+        if board.check_win(board.get_other_player()):
 
-    def compute_evaluation(self, board):
+            weight = 1
 
-        return
+            if self.depth % 2 == 1:
 
-    def update_score(self, board, token, num, weight):
+                weight = -1
 
-        return
+            # self.utility = (board.moves_player - 22) * weight
+            self.utility = board.moves_player - 22
 
-    def update_evaluation(self, board, col):
+        else:
 
-        return
+            if board.moves_board == 42:
+
+                self.utility = 0
+
+        # self.value = self.utility
+
+        return self.utility
 
     def add_child(self, board, col):
 
-        return
+        # We operate as if the move has already been made in the board
+        child = Node(self.name + str(col), board.player, self.depth + 1, self)
+        self.children.append(child)
+        self.n_children += 1
+
+        return child
 
     def __str__(self):
 
-        ret = f"State: {self.name} | Score X: {self.score_X}"
-        ret += f" | Score O: {self.score_O} | "
-        ret += f"Eval: {self.evaluation} | Utility: {self.utility} | "
-        ret += f"Value: {self.value} | Optimal Child: {self.opt_child} | "
-
-        if self.parent is not None:
-            ret += f"Parent value: {self.parent.value}\n"
+        ret = f"Node: {self.name} | Turn: {self.player} | Utility: {self.utility} | "
+        ret += f"Value: {self.value} | Optimal Col: {self.opt_col}"
 
         return ret
