@@ -54,6 +54,8 @@ class Four_Eyes:
             (self.board.rows * self.board.cols + 1 - self.board.moves_board) / 2
         )
 
+        # Iterative deepining search method to restrain possible alpha-beta
+        # values
         while minimum < maximum:
 
             # print(f"New Iteration: Min: {minimum} : Max: {maximum}")
@@ -132,32 +134,13 @@ class Four_Eyes:
 
             return -self.board.get_score()
 
-        # win_col = self.board.bit_winning_col()
-
-        # if win_col is not None:
-
-        #     # Play winning move
-        #     self.board.n_terminal += 1
-        #     node.opt_col = win_col
-
-        #     child = Node(
-        #         node.name + str(win_col),
-        #         self.board.get_opponent(),
-        #         node.depth + 1,
-        #         node,
-        #     )
-        #     node.children.append(child)
-        #     node.n_children += 1
-        #     child.utility = (self.board.moves_board - self.board.moves_player) - 22
-
-        #     return -child.utility
-
         max_value = int(
             (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
         )
 
         # Transtable check here
         ret = self.trans_table.get_value(self.board.get_key())
+
         if ret is not None:
 
             max_value = ret - (int((self.board.rows * self.board.cols) / 2) + 3) - 1
@@ -171,6 +154,7 @@ class Four_Eyes:
 
                 return beta
 
+        # Iterate through all possible children, considering cutoffs
         for i in range(self.board.cols):
 
             if stop_opponent >= 0:
