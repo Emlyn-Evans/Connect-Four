@@ -19,28 +19,63 @@ class Four_Eyes:
 
         self.board = Board(move)
         self.board.create_board_from_str(board_str)
-
-        print(
-            f"X bits: {self.board.get_bin(self.board.get_player_pos('X'))} : Number: {self.board.get_player_pos('X')}"
-        )
-        print(
-            f"O bits: {self.board.get_bin(self.board.get_player_pos('O'))} : Number: {self.board.get_player_pos('O')}"
-        )
+        # print(
+        #     f"X bits: {self.board.get_bin(self.board.get_player_pos('X'))} : Number: {self.board.get_player_pos('X')}"
+        # )
+        # print(
+        #     f"O bits: {self.board.get_bin(self.board.get_player_pos('O'))} : Number: {self.board.get_player_pos('O')}"
+        # )
 
         print(self.board)
-        print(f"Player turn: {self.board.player}")
-        print(f"Win for X: {self.board.check_win('X')}")
-        print(f"Win for O: {self.board.check_win('O')}")
-        print(
-            f"Board moves: {self.board.moves_board} : Player moves: {self.board.moves_player}"
-        )
+        # print(f"Player turn: {self.board.player}")
+        # print(f"Win for X: {self.board.check_win('X')}")
+        # print(f"Win for O: {self.board.check_win('O')}")
+        # print(
+        #     f"Board moves: {self.board.moves_board} : Player moves: {self.board.moves_player}"
+        # )
 
         self.root = Node(".", move, 0)
         self.root.compute_utility(self.board)
         self.trans_table = Trans_Table(8388593)
 
+        self.solve(start_time)
+
         # test_move(board)
-        self.alpha_beta_negamax(self.root, -22, 22, start_time)
+
+        return
+
+    def solve(self, start_time):
+
+        minimum = -int((self.board.rows * self.board.cols - self.board.moves_board) / 2)
+        maximum = int(
+            (self.board.rows * self.board.cols + 1 - self.board.moves_board) / 2
+        )
+
+        while minimum < maximum:
+
+            # print(f"New Iteration: Min: {minimum} : Max: {maximum}")
+
+            medium = minimum + int((maximum - minimum) / 2)
+
+            if medium <= 0 and int(minimum / 2) < medium:
+
+                medium = int(minimum / 2)
+
+            elif medium >= 0 and int(maximum / 2) > medium:
+
+                medium = int(maximum / 2)
+
+            ret = self.alpha_beta_negamax(self.root, medium, medium + 1, start_time)
+
+            if ret <= medium:
+
+                maximum = ret
+
+            else:
+
+                minimum = ret
+
+        # print(f"Minimum: {minimum}")
 
         print(
             f"\nNodes analysed: {self.board.n_nodes} : Terminal nodes found: {self.board.n_terminal} : Max depth: {self.board.n_depth}"
@@ -49,11 +84,13 @@ class Four_Eyes:
 
         print(f"TT hits: {self.trans_table.hits} | misses: {self.trans_table.misses}")
 
-        return
-
     def alpha_beta_negamax(self, node, alpha, beta, start_time):
 
         # print(f"Alpha: {alpha} : Beta: {beta}")
+
+        # if len(node.name) > 2 and node.name[1] != "3":
+        print(f"Depth: {node.depth} | Name: {node.name}")
+        time.sleep(0.01)
 
         self.board.n_nodes += 1
         # print(f"Nodes: {self.board.n_nodes}")
@@ -71,19 +108,43 @@ class Four_Eyes:
             # print(node)
             # print(board)
 
-            # print(f"Found terminal node: {node.name}")
+            # print(f"Found terminal node, value: {node.utility}")
             self.board.n_terminal += 1
             # print(f"Terminal Nodes: {self.board.n_terminal}")
 
             return node.utility
 
-        max_value = (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
+        win_col = self.board.bit_winning_col()
+
+        if win_col is not None:
+
+            print("Shortcut found")
+
+            # Play winning move
+            self.board.n_terminal += 1
+            node.opt_col = win_col
+
+            child = Node(
+                node.name + str(win_col),
+                self.board.get_other_player(),
+                node.depth + 1,
+                node,
+            )
+            node.children.append(child)
+            node.n_children += 1
+            child.utility = (self.board.moves_board - self.board.moves_player) - 22
+
+            return -child.utility
+
+        max_value = int(
+            (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
+        )
 
         # Transtable check here
         ret = self.trans_table.get_value(self.board.get_key())
         if ret is not None:
 
-            max_value = ret - ((self.board.rows * self.board.cols) / 2 + 3) - 1
+            max_value = ret - (int((self.board.rows * self.board.cols) / 2) + 3) - 1
 
         if beta > max_value:
 
@@ -124,13 +185,13 @@ class Four_Eyes:
                     node.opt_col = col
 
                 # Cutoff time
-                if time.time() - start_time > 0.8:
+                # if time.time() - start_time > 0.8:
 
-                    return alpha
+                #     return alpha
 
         self.trans_table.add(
             self.board.get_key(),
-            (alpha + ((self.board.rows * self.board.cols) / 2 + 3) + 1),
+            (alpha + (int((self.board.rows * self.board.cols) / 2) + 3) + 1),
         )
 
         return alpha

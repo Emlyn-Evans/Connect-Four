@@ -12,6 +12,7 @@ class Board:
         self.n_terminal = 0
         self.n_depth = 0
         self.order = [3, 2, 4, 1, 5, 0, 6]
+        self.bit_bottom = self.compute_bit_bottom()
 
     def create_board_from_str(self, board_str):
 
@@ -164,6 +165,11 @@ class Board:
 
         return
 
+    # def compute_next_win(self, player):
+
+    # If the current player can win in a move, return the move
+    # if player == self.player:
+
     def switch_player(self):
 
         # Flip the pos
@@ -211,6 +217,109 @@ class Board:
             count += 1
 
         return count
+
+    def compute_bit_bottom(self):
+
+        num = 1
+
+        for i in range(self.cols - 1):
+
+            num = num << (self.rows + 1)
+            num += 1
+
+        return num
+
+    def bit_possible(self):
+
+        num = ((self.board + self.bit_bottom) | (self.bit_bottom << self.rows)) - (
+            self.bit_bottom << self.rows
+        )
+
+        # print(f"Possible: {self.get_bin(num)}")
+
+        return num
+
+    def bit_winning_map(self, pos=None):
+
+        if pos is None:
+
+            pos = self.pos
+
+        # Vertical
+        win = (pos << 1) & (pos << 2) & (pos << 3)
+
+        # print(f"Pos:        {self.get_bin(pos)}")
+        # print(f"Pos < 1:    {self.get_bin(pos << 1)}")
+        # print(f"Pos < 2:    {self.get_bin(pos << 1)}")
+        # print(f"Pos < 3:    {self.get_bin(pos << 1)}")
+        # print(f"Vertical:   {self.get_bin(vertical)}")
+
+        # Horizontal
+        # .X..... <-
+        # X.....
+        win = (
+            win
+            | (
+                (pos << (self.rows + 1))
+                & (pos << (self.rows + 1) * 2)
+                & (pos << (self.rows + 1) * 3)
+            )
+            | (
+                (pos >> (self.rows + 1))
+                & (pos >> (self.rows + 1) * 2)
+                & (pos >> (self.rows + 1) * 3)
+            )
+        )
+
+        # Major Diagonal
+
+        win = (
+            win
+            | ((pos << self.rows) & (pos << (self.rows * 2)) & (pos << (self.rows * 3)))
+            | ((pos >> self.rows) & (pos >> (self.rows * 2)) & (pos >> (self.rows * 3)))
+        )
+
+        # Minor Diagonal
+
+        win = (
+            win
+            | (
+                (pos << (self.rows + 2))
+                & (pos << ((self.rows + 2) * 2))
+                & (pos << ((self.rows + 2) * 3))
+            )
+            | (
+                (pos >> (self.rows + 2))
+                & (pos >> ((self.rows + 2) * 2))
+                & (pos >> ((self.rows + 2) * 3))
+            )
+        )
+
+        return win
+
+    def bit_winning_col(self, pos=None):
+
+        if pos is None:
+
+            pos = self.pos
+
+        result = self.bit_winning_map() & self.bit_possible()
+
+        col = None
+
+        for i in range(self.cols):
+
+            if (self.bit_col(i) & result) != 0:
+
+                col = i
+
+        # print(f"WINNING COL: {col}")
+
+        return col
+
+    def bit_col(self, col):
+
+        return ((1 << self.rows) - 1) << ((self.rows + 1) * col)
 
     def get_player_pos(self, player):
 
@@ -287,22 +396,13 @@ class Node:
 
         if board.check_win(board.get_other_player()):
 
-            weight = 1
-
-            if self.depth % 2 == 1:
-
-                weight = -1
-
-            # self.utility = (board.moves_player - 22) * weight
-            self.utility = board.moves_player - 22
+            self.utility = (board.moves_board - board.moves_player) - 22
 
         else:
 
             if board.moves_board == 42:
 
                 self.utility = 0
-
-        # self.value = self.utility
 
         return self.utility
 
