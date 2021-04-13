@@ -230,6 +230,10 @@ class Board:
 
         return f"{num:049b}"
 
+    def get_key(self):
+
+        return self.board + self.pos
+
     def __str__(self):
 
         ret = "\n---------------\n"
@@ -317,3 +321,34 @@ class Node:
         ret += f"Value: {self.value} | Optimal Col: {self.opt_col}"
 
         return ret
+
+
+class Trans_Table:
+    def __init__(self, max_size):
+
+        self.table = {}
+        self.max_size = max_size
+        self.hits = 0
+        self.misses = 0
+
+    def add(self, key, value):
+
+        self.table[self.get_index(key)] = value
+
+    def get_index(self, key):
+
+        return key % self.max_size
+
+    def get_value(self, key):
+
+        if self.get_index(key) not in self.table:
+
+            self.misses += 1
+
+            return None
+
+        else:
+
+            self.hits += 1
+
+            return self.table[self.get_index(key)]
