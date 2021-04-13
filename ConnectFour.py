@@ -7,7 +7,8 @@ from classes import Board, Node, Trans_Table
 class Four_Eyes:
     def __init__(self, board_str, turn):
 
-        start_time = time.time()
+        self.start_time = time.time()
+        self.cutoff_time = 0.8
 
         if turn == "red":
 
@@ -19,27 +20,17 @@ class Four_Eyes:
 
         self.board = Board(move)
         self.board.create_board_from_str(board_str)
-
-        print(self.board)
-        # print(f"Player turn: {self.board.player}")
-        # print(f"Win for X: {self.board.check_win('X')}")
-        # print(f"Win for O: {self.board.check_win('O')}")
-        # print(
-        #     f"Board moves: {self.board.moves_board} : Player moves: {self.board.moves_player}"
-        # )
-
         self.root = Node(".", move, 0)
         self.root.compute_utility(self.board)
         self.trans_table = Trans_Table(8388593)
-        time_cutoff = 0.8
 
-        self.solve(start_time, time_cutoff)
+        print(self.board)
 
-        # test_move(board)
+        self.solve()
 
         return
 
-    def solve(self, start_time, time_cutoff):
+    def solve(self):
 
         # Check if we can win in the next move
         win_col = self.board.bit_winning_col()
@@ -70,9 +61,7 @@ class Four_Eyes:
 
                 medium = int(maximum / 2)
 
-            ret = self.alpha_beta_negamax(
-                self.root, medium, medium + 1, start_time, time_cutoff
-            )
+            ret = self.alpha_beta_negamax(self.root, medium, medium + 1)
 
             if ret <= medium:
 
@@ -82,7 +71,7 @@ class Four_Eyes:
 
                 minimum = ret
 
-            if time.time() - start_time > time_cutoff:
+            if time.time() - self.start_time > self.cutoff_time:
 
                 break
 
@@ -95,17 +84,14 @@ class Four_Eyes:
         print(f"Last Node analysed: {self.board.last_node}")
         print(f"TT hits: {self.trans_table.hits} | misses: {self.trans_table.misses}")
 
-    def alpha_beta_negamax(self, node, alpha, beta, start_time, time_cutoff):
+    def alpha_beta_negamax(self, node, alpha, beta):
 
         # print(f"Alpha: {alpha} : Beta: {beta}")
-
-        # if len(node.name) > 2 and node.name[1] != "3":
         # print(f"Depth: {node.depth} | Name: {node.name}")
         # time.sleep(0.01)
 
         self.board.n_nodes += 1
         self.board.last_node = node.name
-        # print(self.board.last_node)
 
         if self.trans_table.table.__sizeof__() > 70000000:
 
@@ -115,21 +101,16 @@ class Four_Eyes:
 
             self.board.n_depth = node.depth
 
+        # If it is a terminal node, return the utility value
         if node.compute_utility(self.board) is not None:
 
-            # print(f"\nFound terminal node at depth {node.depth}")
-            # print(node)
-            # print(board)
-
-            # print(f"Found terminal node, value: {node.utility}")
             self.board.n_terminal += 1
-            # print(f"Terminal Nodes: {self.board.n_terminal}")
 
             return node.utility
 
         stop_opponent = self.board.bit_stop_opponent_col()
 
-        # Opponent wins
+        # Opponent wins automatically next turn
         if stop_opponent == -2:
 
             return -self.board.get_score()
@@ -170,15 +151,13 @@ class Four_Eyes:
 
                 self.board.add_move(col)
                 child = node.add_child(self.board, col)
-                value = -self.alpha_beta_negamax(
-                    child, -beta, -alpha, start_time, time_cutoff
-                )
+                value = -self.alpha_beta_negamax(child, -beta, -alpha)
                 self.board.remove_move(col)
 
                 # print(f" -- Alpha: {alpha} : Beta: {beta} : Value: {value}")
 
                 # Cutoff time
-                if time.time() - start_time > time_cutoff:
+                if time.time() - self.start_time > self.cutoff_time:
 
                     if value > alpha:
 
@@ -189,6 +168,7 @@ class Four_Eyes:
 
                     return alpha
 
+                # Update alpha and beta values
                 if value >= beta:
 
                     node.value = value
@@ -205,6 +185,7 @@ class Four_Eyes:
                     node.opt_child = node.n_children
                     node.opt_col = col
 
+        # Add position to transposition table
         self.trans_table.add(
             self.board.get_key(),
             (alpha + (int((self.board.rows * self.board.cols) / 2) + 3) + 1),
