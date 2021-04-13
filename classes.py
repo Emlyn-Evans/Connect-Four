@@ -13,6 +13,7 @@ class Board:
         self.n_depth = 0
         self.order = [3, 2, 4, 1, 5, 0, 6]
         self.bit_bottom = self.compute_bit_bottom()
+        self.last_node = None
 
     def create_board_from_str(self, board_str):
 
@@ -65,7 +66,7 @@ class Board:
 
         else:
 
-            num = self.board ^ self.pos
+            num = self.get_opponent_pos()
 
         # Horizontal
         mask = num & num >> 7
@@ -165,21 +166,16 @@ class Board:
 
         return
 
-    # def compute_next_win(self, player):
-
-    # If the current player can win in a move, return the move
-    # if player == self.player:
-
     def switch_player(self):
 
         # Flip the pos
-        self.pos = self.get_player_pos(self.player) ^ self.board
+        self.pos = self.pos ^ self.board
         self.moves_player = self.moves_board - self.moves_player
-        self.player = self.get_other_player()
+        self.player = self.get_opponent()
 
         return
 
-    def get_other_player(self):
+    def get_opponent(self):
 
         player = None
 
@@ -303,7 +299,7 @@ class Board:
 
             pos = self.pos
 
-        result = self.bit_winning_map() & self.bit_possible()
+        result = self.bit_winning_map(pos) & self.bit_possible()
 
         col = None
 
@@ -317,23 +313,38 @@ class Board:
 
         return col
 
+    def bit_stop_opponent_col(self):
+
+        win_opponent = self.bit_winning_map(self.get_opponent_pos())
+        forced_moves = win_opponent & self.bit_possible()
+
+        if forced_moves != 0:
+
+            if forced_moves & (forced_moves - 1) != 0:
+
+                # We lose no matter what we play
+                return -2
+
+            else:
+
+                for i in range(self.cols):
+
+                    if (self.bit_col(i) & forced_moves) != 0:
+
+                        return i
+
+        else:
+
+            # It doesn't yet matter what we play
+            return -1
+
     def bit_col(self, col):
 
         return ((1 << self.rows) - 1) << ((self.rows + 1) * col)
 
-    def get_player_pos(self, player):
+    def get_opponent_pos(self):
 
-        ret = None
-
-        if player == self.player:
-
-            ret = self.pos
-
-        else:
-
-            ret = self.board ^ self.pos
-
-        return ret
+        return self.board ^ self.pos
 
     def get_bin(self, num):
 
@@ -342,6 +353,10 @@ class Board:
     def get_key(self):
 
         return self.board + self.pos
+
+    def get_score(self):
+
+        return int((self.rows * self.cols - self.moves_board) / 2)
 
     def __str__(self):
 
@@ -394,9 +409,9 @@ class Node:
 
     def compute_utility(self, board):
 
-        if board.check_win(board.get_other_player()):
+        if board.check_win(board.get_opponent()):
 
-            self.utility = (board.moves_board - board.moves_player) - 22
+            self.utility = -board.get_score()
 
         else:
 
