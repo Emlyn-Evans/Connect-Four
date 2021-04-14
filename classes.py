@@ -6,14 +6,16 @@ class Board:
         self.player = player
         self.pos = None
         self.board = None
-        self.moves_player = None
-        self.moves_board = None
+        self.moves_player = 0
+        self.moves_board = 0
         self.n_nodes = 0
         self.n_terminal = 0
         self.n_depth = 0
         self.order = [3, 2, 4, 1, 5, 0, 6]
         self.bit_bottom = self.compute_bit_bottom()
         self.last_node = None
+        self.max_utility = int((self.rows * self.cols + 1) / 2) - 3
+        self.min_utility = -int((self.rows * self.cols) / 2) + 3
 
     def create_board_from_str(self, board_str):
 
@@ -416,20 +418,7 @@ class Node:
         self.n_children = 0
         self.opt_child = None
         self.opt_col = None
-
-    def compute_utility(self, board):
-
-        if board.check_win(board.get_opponent()):
-
-            self.utility = -board.get_utility()
-
-        else:
-
-            if board.moves_board == 42:
-
-                self.utility = 0
-
-        return self.utility
+        self.opt_string = ""
 
     def add_child(self, board, col):
 
