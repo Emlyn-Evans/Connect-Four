@@ -313,30 +313,31 @@ class Board:
 
         return col
 
-    def bit_stop_opponent_col(self):
+    def bit_potential_map(self):
 
-        win_opponent = self.bit_winning_map(self.get_opponent_pos())
-        forced_moves = win_opponent & self.bit_possible()
+        opponent_win = self.bit_winning_map(self.get_opponent_pos())
+        possible = self.bit_possible()
+        forced_moves = opponent_win & possible
 
         if forced_moves != 0:
 
             if forced_moves & (forced_moves - 1) != 0:
 
                 # We lose no matter what we play
-                return -2
+                return -1
 
             else:
 
-                for i in range(self.cols):
-
-                    if (self.bit_col(i) & forced_moves) != 0:
-
-                        return i
+                return forced_moves
 
         else:
 
-            # It doesn't yet matter what we play
-            return -1
+            # We don't want to play in a column where an opponent can win next
+            # turn
+
+            safe_map = self.bit_possible() & (~(opponent_win >> 1))
+
+            return safe_map
 
     def bit_col(self, col):
 

@@ -108,10 +108,10 @@ class Four_Eyes:
 
             return node.utility
 
-        stop_opponent = self.board.bit_stop_opponent_col()
+        potential_map = self.board.bit_potential_map()
 
-        # Opponent wins automatically next turn
-        if stop_opponent == -2:
+        # If opponent wins automatically next turn
+        if potential_map == -1:
 
             return -self.board.get_score()
 
@@ -119,7 +119,7 @@ class Four_Eyes:
             (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
         )
 
-        # Transtable check here
+        # Transposition table check here
         ret = self.trans_table.get_value(self.board.get_key())
 
         if ret is not None:
@@ -135,20 +135,15 @@ class Four_Eyes:
 
                 return beta
 
-        # Iterate through all possible children, considering cutoffs
+        # We only need to iterate over the potential_map
         for i in range(self.board.cols):
 
-            if stop_opponent >= 0:
+            col = self.board.order[i]
 
-                col = stop_opponent
-                i = self.board.cols
+            # Analyse the best move map to see if its feasible
+            if (self.board.bit_col(col) & potential_map) != 0:
 
-            else:
-
-                col = self.board.order[i]
-
-            if self.board.check_filled(col) == 0:
-
+                # Make child with col
                 self.board.add_move(col)
                 child = node.add_child(self.board, col)
                 value = -self.alpha_beta_negamax(child, -beta, -alpha)
