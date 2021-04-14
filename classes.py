@@ -227,10 +227,7 @@ class Board:
 
     def bit_possible(self):
 
-        num = ((self.board + self.bit_bottom) | (self.bit_bottom << self.rows)) - (
-            self.bit_bottom << self.rows
-        )
-
+        num = (self.board + self.bit_bottom) & (~(self.bit_bottom << self.rows))
         # print(f"Possible: {self.get_bin(num)}")
 
         return num
@@ -324,7 +321,7 @@ class Board:
             if forced_moves & (forced_moves - 1) != 0:
 
                 # We lose no matter what we play
-                return -1
+                return 0
 
             else:
 
@@ -343,6 +340,18 @@ class Board:
 
         return ((1 << self.rows) - 1) << ((self.rows + 1) * col)
 
+    def bit_score_move(self, move_map):
+
+        # We build an evaluation function here
+        # We start by scoring the number of open 3-in-a-row-positions
+
+        chances = self.bit_winning_map(self.pos | move_map)
+        available_chances = (
+            chances & (~(self.bit_bottom << self.rows)) & (~(self.board))
+        )
+
+        return self.count_ones(available_chances)
+
     def get_opponent_pos(self):
 
         return self.board ^ self.pos
@@ -355,7 +364,7 @@ class Board:
 
         return self.board + self.pos
 
-    def get_score(self):
+    def get_utility(self):
 
         return int((self.rows * self.cols - self.moves_board) / 2)
 
@@ -412,7 +421,7 @@ class Node:
 
         if board.check_win(board.get_opponent()):
 
-            self.utility = -board.get_score()
+            self.utility = -board.get_utility()
 
         else:
 
@@ -468,3 +477,61 @@ class Trans_Table:
             self.hits += 1
 
             return self.table[self.get_index(key)]
+
+
+class Move_Sorter:
+    def __init__(self):
+
+        self.cols = [0, 0, 0, 0, 0, 0, 0]
+        self.scores = [0, 0, 0, 0, 0, 0, 0]
+        self.size = 0
+        self.index = 0
+        self.col_order = [3, 2, 4, 1, 5, 0, 6]
+
+    def compute_move_order(self, potential_map, board):
+
+        for col in self.col_order:
+
+            move_map = board.bit_col(col) & potential_map
+
+            if move_map != 0:
+
+                score = board.bit_score_move(move_map)
+
+                # print(f"Col: {col} : Score: {score}")
+                # print(f"Cols: {self.cols} : Scores: {self.scores}")
+
+                # Add to array
+
+                index = self.size
+
+                # Modified insertion sort
+                while index > 0 and self.scores[index - 1] < score:
+
+                    self.cols[index] = self.cols[index - 1]
+                    self.scores[index] = self.scores[index - 1]
+                    index -= 1
+
+                self.cols[index] = col
+                self.scores[index] = score
+                self.size += 1
+
+        return
+
+    def get_next_move(self):
+
+        if self.index < self.size:
+
+            col = self.cols[self.index]
+            self.index += 1
+
+            return col
+
+        return None
+
+    def reset(self):
+
+        self.cols = [0, 0, 0, 0, 0, 0, 0]
+        self.scores = [0, 0, 0, 0, 0, 0, 0]
+        self.size = 0
+        self.index = 0

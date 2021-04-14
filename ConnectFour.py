@@ -1,7 +1,7 @@
 import sys
 import time
 
-from classes import Board, Node, Trans_Table
+from classes import Board, Node, Trans_Table, Move_Sorter
 
 
 class Four_Eyes:
@@ -23,6 +23,7 @@ class Four_Eyes:
         self.root = Node(".", move, 0)
         self.root.compute_utility(self.board)
         self.trans_table = Trans_Table(8388593)
+        self.move_sorter = Move_Sorter()
 
         print(self.board)
 
@@ -104,16 +105,18 @@ class Four_Eyes:
         # If it is a terminal node, return the utility value
         if node.compute_utility(self.board) is not None:
 
-            self.board.n_terminal += 1
+            # self.board.n_terminal += 1
 
             return node.utility
 
         potential_map = self.board.bit_potential_map()
 
         # If opponent wins automatically next turn
-        if potential_map == -1:
+        if potential_map == 0:
 
-            return -self.board.get_score()
+            self.board.n_terminal += 1
+
+            return -self.board.get_utility()
 
         max_value = int(
             (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
@@ -136,49 +139,56 @@ class Four_Eyes:
                 return beta
 
         # We only need to iterate over the potential_map
-        for i in range(self.board.cols):
+        # Sort potential moves
+        self.move_sorter.reset()
+        self.move_sorter.compute_move_order(potential_map, self.board)
+        col = self.move_sorter.get_next_move()
 
-            col = self.board.order[i]
+        # print(f"Node: {node.name} Move Sorter: {self.move_sorter.cols}")
 
-            # Analyse the best move map to see if its feasible
-            if (self.board.bit_col(col) & potential_map) != 0:
+        while col is not None:
 
-                # Make child with col
-                self.board.add_move(col)
-                child = node.add_child(self.board, col)
-                value = -self.alpha_beta_negamax(child, -beta, -alpha)
-                self.board.remove_move(col)
+            # print(f"Adding child with col {col}")
+            # time.sleep(0.1)
 
-                # print(f" -- Alpha: {alpha} : Beta: {beta} : Value: {value}")
+            # Make child with col
+            self.board.add_move(col)
+            child = node.add_child(self.board, col)
+            value = -self.alpha_beta_negamax(child, -beta, -alpha)
+            self.board.remove_move(col)
 
-                # Cutoff time
-                if time.time() - self.start_time > self.cutoff_time:
+            # print(f" -- Alpha: {alpha} : Beta: {beta} : Value: {value}")
 
-                    if value > alpha:
-
-                        alpha = value
-                        node.value = value
-                        node.opt_child = node.n_children
-                        node.opt_col = col
-
-                    return alpha
-
-                # Update alpha and beta values
-                if value >= beta:
-
-                    node.value = value
-                    node.opt_child = node.n_children
-                    node.opt_col = col
-
-                    return value
+            # Cutoff time
+            if time.time() - self.start_time > self.cutoff_time:
 
                 if value > alpha:
 
                     alpha = value
-
                     node.value = value
                     node.opt_child = node.n_children
                     node.opt_col = col
+
+                return alpha
+
+            # Update alpha and beta values
+            if value >= beta:
+
+                node.value = value
+                node.opt_child = node.n_children
+                node.opt_col = col
+
+                return value
+
+            if value > alpha:
+
+                alpha = value
+                node.value = value
+                node.opt_child = node.n_children
+                node.opt_col = col
+
+            # Get next move (if there is one)
+            col = self.move_sorter.get_next_move()
 
         # Add position to transposition table
         self.trans_table.add(
