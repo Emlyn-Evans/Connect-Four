@@ -56,6 +56,11 @@ class Board:
         self.moves_player = moves_player
         self.moves_board = moves_board
 
+        if self.player == "O":
+
+            self.pos = self.pos ^ self.board
+            self.moves_player = self.moves_board - self.moves_player
+
         return
 
     def check_win(self, player):
@@ -240,55 +245,51 @@ class Board:
 
             pos = self.pos
 
+        # Need to add in X.XX positions:
+        # (pos & (pos << 1)) & (pos << 2)
+
         # Vertical
         win = (pos << 1) & (pos << 2) & (pos << 3)
 
-        # print(f"Pos:        {self.get_bin(pos)}")
-        # print(f"Pos < 1:    {self.get_bin(pos << 1)}")
-        # print(f"Pos < 2:    {self.get_bin(pos << 1)}")
-        # print(f"Pos < 3:    {self.get_bin(pos << 1)}")
-        # print(f"Vertical:   {self.get_bin(vertical)}")
-
         # Horizontal
-        # .X..... <-
-        # X.....
-        win = (
-            win
-            | (
-                (pos << (self.rows + 1))
-                & (pos << (self.rows + 1) * 2)
-                & (pos << (self.rows + 1) * 3)
-            )
-            | (
-                (pos >> (self.rows + 1))
-                & (pos >> (self.rows + 1) * 2)
-                & (pos >> (self.rows + 1) * 3)
-            )
-        )
+        # Here we need to account for cases with gaps: ..XX.X..
+        pos_base = (pos << (self.rows + 1)) & (pos << (self.rows + 1) * 2)
+        win = win | (pos_base & (pos << (self.rows + 1) * 3))
+        win = win | (pos_base & (pos >> (self.rows + 1)))
+
+        pos_base = (pos >> (self.rows + 1)) & (pos >> (self.rows + 1) * 2)
+        win = win | (pos_base & (pos >> (self.rows + 1) * 3))
+        win = win | (pos_base & (pos << (self.rows + 1)))
+
+        # print(f"Pos:            {self.get_bin(pos)}")
+        # print(f"Pos < 1:        {self.get_bin(pos << (self.rows + 1))}")
+        # print(f"Pos < 2:        {self.get_bin(pos << ((self.rows + 1) * 2))}")
+        # print(f"Pos_1 & Pos_2:  {self.get_bin(pos_base)}")
+        # print(f"Pos < 3:        {self.get_bin(pos << ((self.rows + 1) * 3))}")
+        # print(f"Pos > 1:        {self.get_bin(pos >> (self.rows + 1))}")
+        # print(f"Horizontal:     {self.get_bin(win)}")
 
         # Major Diagonal
 
-        win = (
-            win
-            | ((pos << self.rows) & (pos << (self.rows * 2)) & (pos << (self.rows * 3)))
-            | ((pos >> self.rows) & (pos >> (self.rows * 2)) & (pos >> (self.rows * 3)))
-        )
+        pos_base = (pos << self.rows) & (pos << (self.rows * 2))
+        win = win | (pos_base & (pos << (self.rows * 3)))
+        win = win | (pos_base & (pos >> self.rows))
+
+        pos_base = (pos >> self.rows) & (pos >> (self.rows * 2))
+        win = win | (pos_base & (pos >> (self.rows * 3)))
+        win = win | (pos_base & (pos << self.rows))
 
         # Minor Diagonal
 
-        win = (
-            win
-            | (
-                (pos << (self.rows + 2))
-                & (pos << ((self.rows + 2) * 2))
-                & (pos << ((self.rows + 2) * 3))
-            )
-            | (
-                (pos >> (self.rows + 2))
-                & (pos >> ((self.rows + 2) * 2))
-                & (pos >> ((self.rows + 2) * 3))
-            )
-        )
+        pos_base = (pos << (self.rows + 2)) & (pos << ((self.rows + 2) * 2))
+        win = win | (pos_base & (pos << ((self.rows + 2) * 3)))
+        win = win | (pos_base & (pos >> (self.rows + 2)))
+
+        pos_base = (pos >> (self.rows + 2)) & (pos >> ((self.rows + 2) * 2))
+        win = win | (pos_base & (pos >> ((self.rows + 2) * 3)))
+        win = win | (pos_base & (pos << (self.rows + 2)))
+
+        # print(f"Win:     {self.get_bin(win)}")
 
         return win
 
@@ -524,3 +525,293 @@ class Move_Sorter:
         self.scores = [0, 0, 0, 0, 0, 0, 0]
         self.size = 0
         self.index = 0
+
+
+class Book:
+    def __init__(self):
+
+        self.oracle = {}
+
+    def get_key(self, board_str):
+
+        player_bits = ""
+        board_bits = ""
+
+        rows = board_str.split(",")
+
+        for j in range(6, -1, -1):
+
+            player_bits += "0"
+            board_bits += "0"
+
+            for i in range(5, -1, -1):
+
+                if rows[i][j] == "r":
+
+                    player_bits += "1"
+                    board_bits += "1"
+
+                elif rows[i][j] == "y":
+
+                    player_bits += "0"
+                    board_bits += "1"
+
+                else:
+
+                    player_bits += "0"
+                    board_bits += "0"
+
+        pos = int(player_bits, 2)
+        board = int(board_bits, 2)
+
+        return pos + board
+
+    def input_oracle(self):
+
+        text = input("Enter action: ")
+
+        legit = True
+
+        while text is legit:
+
+            text_list = text.split(" ")
+
+            if len(text_list) == 2:
+
+                action = text_list[0]
+                col = int(text_list[1])
+
+                if action == "a":
+
+                    if col < 7 and col >= 0:
+
+                        # Add move to board
+                        return
+
+                    else:
+
+                        legit = False
+
+                elif action == "r":
+
+                    if col < 7 and col >= 0:
+
+                        # Remove move from board
+
+                    else:
+
+                        legit = False
+
+                else:
+
+                    legit = False
+
+    def build_oracle(self):
+
+        # r_0_0 = ".......,.......,.......,.......,.......,......."
+        self.oracle[self.get_key(".......,.......,.......,.......,.......,.......")] = 3
+
+        # 1
+        self.oracle[
+            self.get_key("r......,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key(".r.....,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+        self.oracle[
+            self.get_key("..r....,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key("...r...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key("....r..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key(".....r.,.......,.......,.......,.......,.......")
+        ] = 4  # 4
+        self.oracle[
+            self.get_key("......r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        # 2
+        self.oracle[
+            self.get_key("y..r...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key(".y.r...,.......,.......,.......,.......,.......")
+        ] = 1  # 1
+        self.oracle[
+            self.get_key("..yr...,.......,.......,.......,.......,.......")
+        ] = 5  # 5
+        self.oracle[
+            self.get_key("...r...,...y...,.......,.......,.......,.......")
+        ] = 3  # 3
+        self.oracle[
+            self.get_key("...ry..,.......,.......,.......,.......,.......")
+        ] = 1  # 1
+        self.oracle[
+            self.get_key("...r.y.,.......,.......,.......,.......,.......")
+        ] = 5  # 5
+        self.oracle[
+            self.get_key("...r..y,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        # 3
+        y_3_030 = self.oracle[
+            self.get_key("r..y...,r......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_031 = self.oracle[
+            self.get_key("rr.y...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_032 = self.oracle[
+            self.get_key("r.ry...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_033 = self.oracle[
+            self.get_key("r..y...,...r...,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_034 = self.oracle[
+            self.get_key("r..yr..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_035 = self.oracle[
+            self.get_key("r..y.r.,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_036 = self.oracle[
+            self.get_key("r..y..r,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+
+        y_3_120 = self.oracle[
+            self.get_key("rry....,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_121 = self.oracle[
+            self.get_key(".ry....,.r.....,.......,.......,.......,.......")
+        ] = 1  # 1
+        y_3_122 = self.oracle[
+            self.get_key(".ry....,..r....,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_123 = self.oracle[
+            self.get_key(".ryr...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_124 = self.oracle[
+            self.get_key(".ry.r..,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_125 = self.oracle[
+            self.get_key(".ry..r.,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_126 = self.oracle[
+            self.get_key(".ry...r,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+
+        y_3_230 = self.oracle[
+            self.get_key("r.ry...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_231 = self.oracle[
+            self.get_key(".rry...,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_232 = self.oracle[
+            self.get_key("..ry...,..r....,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_233 = self.oracle[
+            self.get_key("..ry...,...r...,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_234 = self.oracle[
+            self.get_key("..ryr..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_235 = self.oracle[
+            self.get_key("..ry.r.,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_236 = self.oracle[
+            self.get_key("..ry..r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        y_3_330 = self.oracle[
+            self.get_key("r..r...,...y...,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_331 = self.oracle[
+            self.get_key(".r.r...,...y...,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_332 = self.oracle[
+            self.get_key("..rr...,...y...,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_333 = self.oracle[
+            self.get_key("...r...,...y...,...r...,.......,.......,.......")
+        ] = 3  # 3
+        y_3_334 = self.oracle[
+            self.get_key("...rr..,...y...,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_335 = self.oracle[
+            self.get_key("...r.r.,...y...,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_336 = self.oracle[
+            self.get_key("...r..r,...y...,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        y_3_430 = self.oracle[
+            self.get_key("r..yr..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_431 = self.oracle[
+            self.get_key(".r.yr..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_432 = self.oracle[
+            self.get_key("..ryr..,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_433 = self.oracle[
+            self.get_key("...yr..,...r...,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_434 = self.oracle[
+            self.get_key("...yr..,....r..,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_435 = self.oracle[
+            self.get_key("...yrr.,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_436 = self.oracle[
+            self.get_key("...yr.r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        y_3_540 = self.oracle[
+            self.get_key("r...yr.,.......,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_541 = self.oracle[
+            self.get_key(".r..yr.,.......,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_542 = self.oracle[
+            self.get_key("..r.yr.,.......,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_543 = self.oracle[
+            self.get_key("...ryr.,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_544 = self.oracle[
+            self.get_key("....yr.,....r..,.......,.......,.......,.......")
+        ] = 4  # 4
+        y_3_545 = self.oracle[
+            self.get_key("....yr.,.....r.,.......,.......,.......,.......")
+        ] = 5  # 5
+        y_3_546 = self.oracle[
+            self.get_key("....yrr,.......,.......,.......,.......,.......")
+        ] = 4  # 4
+
+        y_3_630 = self.oracle[
+            self.get_key("r..y..r,.......,.......,.......,.......,.......")
+        ] = 2  # 2
+        y_3_631 = self.oracle[
+            self.get_key(".r.y..r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_632 = self.oracle[
+            self.get_key("..ry..r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_633 = self.oracle[
+            self.get_key("...y..r,...r...,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_634 = self.oracle[
+            self.get_key("...yr.r,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_635 = self.oracle[
+            self.get_key("...y.rr,.......,.......,.......,.......,.......")
+        ] = 3  # 3
+        y_3_636 = self.oracle[
+            self.get_key("...y..r,......r,.......,.......,.......,.......")
+        ] = 3  # 3
+
+        # 4
+
+        # self.oracle[]

@@ -1,14 +1,14 @@
 import sys
 import time
 
-from classes import Board, Node, Trans_Table, Move_Sorter
+from classes import Board, Node, Trans_Table, Move_Sorter, Book
 
 
 class Four_Eyes:
     def __init__(self, board_str, turn):
 
         self.start_time = time.time()
-        self.cutoff_time = 0.8
+        self.cutoff_time = 0.9
 
         if turn == "red":
 
@@ -22,7 +22,8 @@ class Four_Eyes:
         self.board.create_board_from_str(board_str)
         self.root = Node(".", move, 0)
         self.trans_table = Trans_Table(8388593)
-        self.move_sorter = Move_Sorter()
+        self.book = Book()
+        self.book.build_oracle()
 
         print(self.board)
 
@@ -32,48 +33,64 @@ class Four_Eyes:
 
     def solve(self):
 
+        # Check if in book
+        player_pos = self.board.pos
+
+        if self.root.player == "O":
+
+            player_pos = self.board.get_opponent_pos()
+
+        key = self.board.board + player_pos
+
+        if key in self.book.oracle:
+
+            self.root.opt_col = self.book.oracle[key]
+
         # Check if we can win in the next move
         win_col = self.board.bit_winning_col()
 
         if win_col is not None:
 
             self.root.opt_col = win_col
-            return
 
-        minimum = -int((self.board.rows * self.board.cols - self.board.moves_board) / 2)
-        maximum = int(
-            (self.board.rows * self.board.cols + 1 - self.board.moves_board) / 2
-        )
+        if self.root.opt_col is None:
 
-        # Iterative deepining search method to restrain possible alpha-beta
-        # values
-        while minimum < maximum:
+            minimum = -int(
+                (self.board.rows * self.board.cols - self.board.moves_board) / 2
+            )
+            maximum = int(
+                (self.board.rows * self.board.cols + 1 - self.board.moves_board) / 2
+            )
 
-            # print(f"New Iteration: Min: {minimum} : Max: {maximum}")
+            # Iterative deepining search method to restrain possible alpha-beta
+            # values
+            while minimum < maximum:
 
-            medium = minimum + int((maximum - minimum) / 2)
+                # print(f"New Iteration: Min: {minimum} : Max: {maximum}")
 
-            if medium <= 0 and int(minimum / 2) < medium:
+                medium = minimum + int((maximum - minimum) / 2)
 
-                medium = int(minimum / 2)
+                if medium <= 0 and int(minimum / 2) < medium:
 
-            elif medium >= 0 and int(maximum / 2) > medium:
+                    medium = int(minimum / 2)
 
-                medium = int(maximum / 2)
+                elif medium >= 0 and int(maximum / 2) > medium:
 
-            ret = self.alpha_beta_negamax(self.root, medium, medium + 1)
+                    medium = int(maximum / 2)
 
-            if ret <= medium:
+                ret = self.alpha_beta_negamax(self.root, medium, medium + 1)
 
-                maximum = ret
+                if ret <= medium:
 
-            else:
+                    maximum = ret
 
-                minimum = ret
+                else:
 
-            if time.time() - self.start_time > self.cutoff_time:
+                    minimum = ret
 
-                break
+                if time.time() - self.start_time > self.cutoff_time:
+
+                    break
 
         # print(f"Minimum: {minimum}")
 
@@ -128,7 +145,7 @@ class Four_Eyes:
 
             if alpha >= beta:
 
-                print(f"Pruning out of loop for alpha...")
+                # print(f"Pruning out of loop for alpha...")
 
                 return alpha
 
@@ -143,7 +160,7 @@ class Four_Eyes:
 
             if alpha >= beta:
 
-                print(f"Pruning out of loop for beta...")
+                # print(f"Pruning out of loop for beta...")
 
                 return beta
 
@@ -182,9 +199,9 @@ class Four_Eyes:
 
         # We only need to iterate over the potential_map
         # Sort potential moves
-        self.move_sorter.reset()
-        self.move_sorter.compute_move_order(potential_map, self.board)
-        col = self.move_sorter.get_next_move()
+        move_sorter = Move_Sorter()
+        move_sorter.compute_move_order(potential_map, self.board)
+        col = move_sorter.get_next_move()
 
         # print(f"Node: {node.name} Move Sorter: {self.move_sorter.cols}")
 
@@ -197,58 +214,66 @@ class Four_Eyes:
             self.board.add_move(col)
             child = node.add_child(self.board, col)
 
-            print(f"Checking out: {child.name}")
+            # print(f"Checking out: {child.name}")
             value = -self.alpha_beta_negamax(child, -beta, -alpha)
 
-            if value > 0:
-
-                if node.player == "X":
-
-                    print(
-                        f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
-                    )
-
-                else:
-
-                    print(
-                        f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
-                    )
-
-            elif value < 0:
-
-                if node.player == "X":
-
-                    print(
-                        f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
-                    )
-
-                else:
-
-                    print(
-                        f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
-                    )
-
-            else:
-
-                print(f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Draw")
-
             self.board.remove_move(col)
+
+            # if value > 0:
+
+            #     if node.player == "X":
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
+            #         )
+
+            #     else:
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
+            #         )
+
+            # elif value < 0:
+
+            #     if node.player == "X":
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
+            #         )
+
+            #     else:
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
+            #         )
+
+            # else:
+
+            #     print(f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Draw")
 
             # print(f" -- Alpha: {alpha} : Beta: {beta} : Value: {value}")
 
             # Cutoff time
-            # if time.time() - self.start_time > self.cutoff_time:
+            if time.time() - self.start_time > self.cutoff_time:
 
-            #     print("TIMEOUT")
+                # print("TIMEOUT")
 
-            #     if value > alpha:
+                if value > alpha:
 
-            #         alpha = value
-            #         node.value = value
-            #         node.opt_child = node.n_children
-            #         node.opt_col = col
+                    alpha = value
 
-            #     return alpha
+                    node.value = value
+                    node.opt_child = node.n_children
+                    node.opt_col = col
+                    node.opt_string = str(node.opt_col) + child.opt_string
+
+                if node.opt_col is None:
+
+                    node.opt_child = node.n_children
+                    node.opt_col = col
+                    node.opt_string = str(node.opt_col) + child.opt_string
+
+                return alpha
 
             # Update alpha and beta values
             if value >= beta:
@@ -261,9 +286,9 @@ class Four_Eyes:
                 node.value = value
                 node.opt_child = node.n_children
                 node.opt_col = col
-                node.opt_string = child.opt_string + str(col)
+                node.opt_string = str(node.opt_col) + child.opt_string
 
-                print(f"Pruning in loop...")
+                # print(f"Pruning in loop...")
 
                 return value
 
@@ -273,10 +298,12 @@ class Four_Eyes:
                 node.value = value
                 node.opt_child = node.n_children
                 node.opt_col = col
-                node.opt_string = child.opt_string + str(col)
+                node.opt_string = str(node.opt_col) + child.opt_string
 
             # Get next move (if there is one)
-            col = self.move_sorter.get_next_move()
+            col = move_sorter.get_next_move()
+
+        node.opt_string = str(node.opt_col) + child.opt_string
 
         # Add upper bound to position to transposition table
         self.trans_table.add(
