@@ -5,10 +5,10 @@ from classes import Board, Node, Trans_Table, Move_Sorter, Book
 
 
 class Four_Eyes:
-    def __init__(self, board_str, turn):
+    def __init__(self, board_str, turn, start_time):
 
-        self.start_time = time.time()
-        self.cutoff_time = 0.9
+        self.start_time = start_time
+        self.cutoff_time = 0.8
 
         if turn == "red":
 
@@ -23,9 +23,9 @@ class Four_Eyes:
         self.root = Node(".", move, 0)
         self.trans_table = Trans_Table(8388593)
         self.book = Book()
-        self.book.build_oracle()
+        self.book.read_oracle()
 
-        print(self.board)
+        # print(self.board)
 
         self.solve()
 
@@ -33,7 +33,14 @@ class Four_Eyes:
 
     def solve(self):
 
-        # Check if in book
+        # Check if we can win in the next move
+        win_col = self.board.bit_winning_col()
+
+        if win_col is not None:
+
+            self.root.opt_col = win_col
+
+        # Check if the position is in book
         player_pos = self.board.pos
 
         if self.root.player == "O":
@@ -46,13 +53,7 @@ class Four_Eyes:
 
             self.root.opt_col = self.book.oracle[key]
 
-        # Check if we can win in the next move
-        win_col = self.board.bit_winning_col()
-
-        if win_col is not None:
-
-            self.root.opt_col = win_col
-
+        # If not, we need to search
         if self.root.opt_col is None:
 
             minimum = -int(
@@ -63,10 +64,8 @@ class Four_Eyes:
             )
 
             # Iterative deepining search method to restrain possible alpha-beta
-            # values
+            # values by a middle value
             while minimum < maximum:
-
-                # print(f"New Iteration: Min: {minimum} : Max: {maximum}")
 
                 medium = minimum + int((maximum - minimum) / 2)
 
@@ -88,19 +87,29 @@ class Four_Eyes:
 
                     minimum = ret
 
+                # If we exceed the cutoff, quit the program and return the best
+                # move so far
                 if time.time() - self.start_time > self.cutoff_time:
 
                     break
 
-        # print(f"Minimum: {minimum}")
+        # print(
+        #     f"\nNodes analysed: {self.board.n_nodes} : Terminal nodes found: {self.board.n_terminal} : Max depth: {self.board.n_depth}"
+        # )
+        # print(f"{self.root}\n")
+        # print(f"Last Node analysed: {self.board.last_node}")
+        # print(f"TT hits: {self.trans_table.hits} | misses: {self.trans_table.misses}")
+        # print(f"Opt path: {self.root.opt_string}")
 
-        print(
-            f"\nNodes analysed: {self.board.n_nodes} : Terminal nodes found: {self.board.n_terminal} : Max depth: {self.board.n_depth}"
-        )
-        print(f"{self.root}\n")
-        print(f"Last Node analysed: {self.board.last_node}")
-        print(f"TT hits: {self.trans_table.hits} | misses: {self.trans_table.misses}")
-        print(f"Opt path: {self.root.opt_string}")
+        if self.root.opt_col is None:
+
+            time.sleep(2)
+
+        else:
+
+            print(f"{self.root.opt_col}")
+
+        return
 
     def alpha_beta_negamax(self, node, alpha, beta):
 
@@ -111,14 +120,15 @@ class Four_Eyes:
         self.board.n_nodes += 1
         self.board.last_node = node.name
 
-        if self.trans_table.table.__sizeof__() > 70000000:
+        # if self.trans_table.table.__sizeof__() > 70000000:
 
-            print("TT TOO BIG")
+        #     print("TT TOO BIG")
 
-        if node.depth > self.board.n_depth:
+        # if node.depth > self.board.n_depth:
 
-            self.board.n_depth = node.depth
+        #     self.board.n_depth = node.depth
 
+        # Generate a map of all potential positions to play (possible and safe)
         potential_map = self.board.bit_potential_map()
 
         # If opponent wins automatically on their next turn
@@ -198,7 +208,7 @@ class Four_Eyes:
                         return beta
 
         # We only need to iterate over the potential_map
-        # Sort potential moves
+        # Sort potential moves by evaluation function
         move_sorter = Move_Sorter()
         move_sorter.compute_move_order(potential_map, self.board)
         col = move_sorter.get_next_move()
@@ -292,6 +302,7 @@ class Four_Eyes:
 
                 return value
 
+            # Store best child so far
             if value > alpha:
 
                 alpha = value
@@ -314,4 +325,40 @@ class Four_Eyes:
         return alpha
 
 
-four_eyes = Four_Eyes(sys.argv[1], sys.argv[2])
+def oracle_builder():
+
+    book = Book()
+    book.read_oracle()
+
+    # Build for X
+    # Here we can start from the baseline
+    book.set_board("X", ".......,.......,.......,.......,.......,.......")
+    book.build_oracle(5)
+
+    # Build for O
+    # Here we have to run it 7 times for each of the starting X moves
+
+    book.set_board("O", "r......,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", ".r.....,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", "..r....,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", "...r...,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", "....r..,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", ".....r.,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+    book.set_board("O", "......r,.......,.......,.......,.......,.......")
+    book.build_oracle(3)
+
+    # Write
+    book.write_oracle("output.txt")
+
+
+start_time = time.time()
+Four_Eyes(sys.argv[1], sys.argv[2], start_time)
+
+# print(f"Program ran for {time.time() - start_time}")
+# oracle_builder()
