@@ -3,6 +3,30 @@ import time
 
 from classes import Board, Node, Trans_Table, Move_Sorter, Book
 
+"""
+Tournament AI to play Connect Four.
+
+Absolute credit goes to the guy that authored this blog:
+- http://blog.gamesolver.org/solving-connect-four/01-introduction/
+
+I followed this guide and implemented my own version based off most of the ideas
+in the blog. I found his ideas interesting and useful and it was a lot of fun to
+learn and understand them so I could do them myself. There were many times when
+I tried to stray from the path outlined for originality purposes, but always
+resorted to coming back as this blog outlined the easiest and most efficient
+methods of implementation (but at least I realised why in the end).
+
+Thanks also to:
+- https://connect4.gamesolver.org/en
+
+For allowing me to play my AI against it as a baseline for generating the book
+moves.
+
+Overall, I had a lot of fun doing this project and I'll be slightly pissed off
+if the bot gets timed out due to initialising python and all it's overheads.
+
+"""
+
 
 class Four_Eyes:
     def __init__(self, board_str, turn, start_time):
