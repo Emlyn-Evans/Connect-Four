@@ -1,272 +1,396 @@
 import sys
-from classes import Board, State
+import time
 
+from classes import Board, Node, Trans_Table, Move_Sorter, Book
 
-def tree_print(state):
+"""
+Tournament AI to play Connect Four.
 
-    print(state)
+Absolute credit goes to the guy that authored this blog:
+- http://blog.gamesolver.org/solving-connect-four/01-introduction/
 
-    for i in state.children:
+I followed this guide and implemented my own version based off most of the ideas
+in the blog. I found his ideas interesting and useful and it was a lot of fun to
+learn and understand them so I could do them myself. There were many times when
+I tried to stray from the path outlined for originality purposes, but always
+resorted to coming back as this blog outlined the easiest and most efficient
+methods of implementation (but at least I realised why in the end).
 
-        tree_print(i)
+Thanks also to:
+- https://connect4.gamesolver.org/en
 
+For allowing me to play my AI against it as a baseline for generating the book
+moves.
 
-def tree_search_print(board, root):
+Overall, I had a lot of fun doing this project and I'll be slightly pissed off
+if the bot gets timed out due to initialising python and all it's overheads.
 
-    current_state = root
-    while current_state.opt_child is not None:
+"""
 
-        print(board)
-        print(current_state)
 
-        col = current_state.opt_child
-        current_state = current_state.children[current_state.opt_child]
-        board.add_move(col, current_state.last_move)
+class Four_Eyes:
+    def __init__(self, board_str, turn, start_time):
 
-    print(board)
-    print(current_state)
+        self.start_time = start_time
+        self.cutoff_time = 0.75
 
+        if turn == "red":
 
-def minimax_recursion(board, state, depth, max_depth):
+            move = "X"
 
-    board.n_states += 1
+        else:
 
-    # Check goal state
-    if state.utility != 0:
+            move = "O"
 
-        state.value = state.utility
-        return state.value
+        self.board = Board(move)
+        self.board.create_board_from_str(board_str)
+        self.root = Node(".", move, 0)
+        self.trans_table = Trans_Table(8388593)
+        self.book = Book()
+        self.book.read_oracle()
+        self.book.fix_mistakes()
 
-    # Check leaf
-    if depth == max_depth:
+        # print(self.board)
 
-        state.value = state.evaluation
-        return state.value
+        self.solve()
 
-    # Non-leaf and non-goal nodes take minimax
+        return
 
-    move = None
+    def solve(self):
 
-    if state.last_move == "O":
-        move = "X"
+        # Check if we can win in the next move
+        win_col = self.board.bit_winning_col()
 
-    else:
-        move = "O"
+        if win_col is not None:
 
-    for i in range(len(board.filled_cols)):
+            self.root.opt_col = win_col
 
-        if board.filled_cols[i] < 6:
+        # Check if the position is in book
+        key = self.board.get_key()
 
-            board.add_move(i, move)
-            child = state.add_child(board, i)
-            value = minimax_recursion(board, child, depth + 1, max_depth)
-            board.remove_move(i)
+        if key in self.book.oracle:
 
-            if state.value is None:
+            self.root.opt_col = self.book.oracle[key]
 
-                state.value = value
-                state.opt_child = i
+        # Check if the symmetrical position is in the oracle
+        sym_key = self.board.bit_symmetry_key()
 
-                if move == "X":
+        if sym_key in self.book.oracle:
 
-                    if state.value == 10000:
+            self.root.opt_col = 6 - self.book.oracle[sym_key]
 
-                        break
+        # If not, we need to search
+        if self.root.opt_col is None:
 
-                else:
-
-                    if state.value == -10000:
-
-                        break
-
-            else:
-
-                # Maximising
-                if move == "X":
-
-                    if value > state.value:
-
-                        state.value = value
-                        state.opt_child = i
-
-                        if state.value == 10000:
-
-                            break
-
-                # Minimising
-                else:
-
-                    if value < state.value:
-
-                        state.value = value
-                        state.opt_child = i
-
-                        if state.value == -10000:
-
-                            break
-
-    if state.value is None:
-
-        # All columns filled
-        state.value = state.evaluation
-
-    return state.value
-
-
-def minimax_wrapper(board_str, turn, max_depth):
-
-    if turn == "red":
-
-        last_move = "O"
-
-    else:
-
-        last_move = "X"
-
-    board = Board()
-    board.create_board_from_str(board_str)
-    root = State(".", last_move)
-    root.compute_evaluation(board)
-
-    minimax_recursion(board, root, 0, max_depth)
-
-    # tree_search_print(board, root)
-    # tree_print(root)
-
-    print(root.opt_child)
-    print(board.n_states)
-
-    return
-
-
-def alpha_beta_recursion(board, state, depth, max_depth, alpha, beta):
-
-    board.n_states += 1
-
-    # Terminal test:
-    if state.utility != 0:
-
-        return state.utility
-
-    if depth == max_depth:
-
-        return state.evaluation
-
-    move = None
-
-    if state.last_move == "O":
-
-        move = "X"
-
-    else:
-
-        move = "O"
-
-    for i in range(len(board.filled_cols)):
-
-        if board.filled_cols[i] < 6:
-
-            # Create new child and recurse
-            board.add_move(i, move)
-            child = state.add_child(board, i)
-            value = alpha_beta_recursion(
-                board, child, depth + 1, max_depth, alpha, beta
+            minimum = -int(
+                (self.board.rows * self.board.cols - self.board.moves_board) / 2
             )
-            board.remove_move(i)
+            maximum = int(
+                (self.board.rows * self.board.cols + 1 - self.board.moves_board) / 2
+            )
 
-            if state.value is None:
+            # Iterative deepining search method to restrain possible alpha-beta
+            # values by a middle value
+            while minimum < maximum:
 
-                state.value = value
-                state.opt_child = i
+                medium = minimum + int((maximum - minimum) / 2)
 
-            # Maximising
-            if move == "X":
+                if medium <= 0 and int(minimum / 2) < medium:
 
-                if value > state.value:
+                    medium = int(minimum / 2)
 
-                    state.value = value
-                    state.opt_child = i
+                elif medium >= 0 and int(maximum / 2) > medium:
 
-                # Beta Pruning: update alpha for local states in tree
-                if alpha is None:
+                    medium = int(maximum / 2)
 
-                    alpha = state.value
+                ret = self.alpha_beta_negamax(self.root, medium, medium + 1)
+
+                if ret <= medium:
+
+                    maximum = ret
 
                 else:
 
-                    if state.value > alpha:
+                    minimum = ret
 
-                        alpha = state.value
+                # If we exceed the cutoff, quit the program and return the best
+                # move so far
+                if time.time() - self.start_time > self.cutoff_time:
 
-                if beta is not None:
+                    break
+
+        # print(
+        #     f"\nNodes analysed: {self.board.n_nodes} : Terminal nodes found: {self.board.n_terminal} : Max depth: {self.board.n_depth}"
+        # )
+        # print(f"{self.root}\n")
+        # print(f"Last Node analysed: {self.board.last_node}")
+        # print(f"TT hits: {self.trans_table.hits} | misses: {self.trans_table.misses}")
+        # print(f"Opt path: {self.root.opt_string}")
+
+        if self.root.opt_col is None:
+
+            time.sleep(2)
+
+        else:
+
+            print(f"{self.root.opt_col}")
+
+        return
+
+    def alpha_beta_negamax(self, node, alpha, beta):
+
+        # print(f"Alpha: {alpha} : Beta: {beta}")
+        # print(f"Depth: {node.depth} | Name: {node.name}")
+        # time.sleep(0.01)
+
+        self.board.n_nodes += 1
+        self.board.last_node = node.name
+
+        # if self.trans_table.table.__sizeof__() > 70000000:
+
+        #     print("TT TOO BIG")
+
+        # if node.depth > self.board.n_depth:
+
+        #     self.board.n_depth = node.depth
+
+        # Generate a map of all potential positions to play (possible and safe)
+        potential_map = self.board.bit_potential_map()
+
+        # If opponent wins automatically on their next turn
+        if potential_map == 0:
+
+            self.board.n_terminal += 1
+
+            return -self.board.get_utility()
+
+        # If there have been 40 moves played and we can't win in the next two,
+        # its a draw
+        if self.board.moves_board >= (self.board.rows * self.board.cols) - 2:
+
+            return 0
+
+        # Lower bound the alpha as opponent cannot win next move by design
+        min_value = -int(
+            (self.board.rows * self.board.cols - 2 - self.board.moves_board) / 2
+        )
+
+        if alpha < min_value:
+
+            alpha = min_value
+
+            if alpha >= beta:
+
+                # print(f"Pruning out of loop for alpha...")
+
+                return alpha
+
+        # Upper bound the beta as we cannot win next move by design
+        max_value = int(
+            (self.board.rows * self.board.cols - 1 - self.board.moves_board) / 2
+        )
+
+        if beta > max_value:
+
+            beta = max_value
+
+            if alpha >= beta:
+
+                # print(f"Pruning out of loop for beta...")
+
+                return beta
+
+        # Transposition Table entry handling
+        ret = self.trans_table.get_value(self.board.get_key())
+
+        if ret is None:
+
+            ret = self.trans_table.get_value(self.board.bit_symmetry_key())
+
+        if ret is not None:
+
+            # If we have a lower bound on the alpha
+            if ret > self.board.max_utility - self.board.min_utility + 1:
+
+                min_value = (
+                    ret + (2 * self.board.min_utility) - self.board.max_utility - 2
+                )
+
+                if alpha < min_value:
+
+                    alpha = min_value
 
                     if alpha >= beta:
 
-                        break
+                        return alpha
 
-            # Minimising
+            # If we have an upper bound on the beta
             else:
 
-                if value < state.value:
+                max_value = ret + self.board.min_utility - 1
 
-                    state.value = value
-                    state.opt_child = i
+                if beta > max_value:
 
-                # Alpha Pruning: update beta for local states in tree
-                if beta is None:
+                    beta = max_value
 
-                    beta = state.value
+                    if alpha >= beta:
 
-                else:
+                        return beta
 
-                    if state.value < beta:
+        # We only need to iterate over the potential_map
+        # Sort potential moves by evaluation function
+        move_sorter = Move_Sorter()
+        move_sorter.compute_move_order(potential_map, self.board)
+        col = move_sorter.get_next_move()
 
-                        beta = state.value
+        # print(f"Node: {node.name} Move Sorter: {self.move_sorter.cols}")
 
-                if alpha is not None:
+        while col is not None:
 
-                    if beta <= alpha:
+            # print(f"Adding child with col {col}")
+            # time.sleep(0.1)
 
-                        break
+            # Make child with col
+            self.board.add_move(col)
+            child = node.add_child(self.board, col)
 
-        # If column is filled
-        else:
+            # print(f"Checking out: {child.name}")
+            value = -self.alpha_beta_negamax(child, -beta, -alpha)
 
-            state.value = state.evaluation
+            self.board.remove_move(col)
 
-    return state.value
+            # if value > 0:
+
+            #     if node.player == "X":
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
+            #         )
+
+            #     else:
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
+            #         )
+
+            # elif value < 0:
+
+            #     if node.player == "X":
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for O found"
+            #         )
+
+            #     else:
+
+            #         print(
+            #             f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Win for X found"
+            #         )
+
+            # else:
+
+            #     print(f"Return val: {value} Alpha: {alpha} : Beta: {beta} : Draw")
+
+            # print(f" -- Alpha: {alpha} : Beta: {beta} : Value: {value}")
+
+            # Cutoff time
+            if time.time() - self.start_time > self.cutoff_time:
+
+                # print("TIMEOUT")
+
+                if value > alpha:
+
+                    alpha = value
+
+                    node.value = value
+                    node.opt_child = node.n_children
+                    node.opt_col = col
+                    node.opt_string = str(node.opt_col) + child.opt_string
+
+                if node.opt_col is None:
+
+                    node.opt_child = node.n_children
+                    node.opt_col = col
+                    node.opt_string = str(node.opt_col) + child.opt_string
+
+                return alpha
+
+            # Update alpha and beta values
+            if value >= beta:
+
+                # Add lower bound to transposition table
+                self.trans_table.add(
+                    self.board.get_key(),
+                    value + self.board.max_utility - (2 * self.board.min_utility) + 2,
+                )
+                node.value = value
+                node.opt_child = node.n_children
+                node.opt_col = col
+                node.opt_string = str(node.opt_col) + child.opt_string
+
+                # print(f"Pruning in loop...")
+
+                return value
+
+            # Store best child so far
+            if value > alpha:
+
+                alpha = value
+                node.value = value
+                node.opt_child = node.n_children
+                node.opt_col = col
+                node.opt_string = str(node.opt_col) + child.opt_string
+
+            # Get next move (if there is one)
+            col = move_sorter.get_next_move()
+
+        node.opt_string = str(node.opt_col) + child.opt_string
+
+        # Add upper bound to position to transposition table
+        self.trans_table.add(
+            self.board.get_key(),
+            (alpha - self.board.min_utility + 1),
+        )
+
+        return alpha
 
 
-def alpha_beta_wrapper(board_str, turn, max_depth):
+def oracle_builder():
 
-    if turn == "red":
+    book = Book()
+    book.read_oracle()
+    book.fix_mistakes()
 
-        last_move = "O"
+    n_moves = 3
 
-    else:
+    # Build for X
+    # Here we can start from the baseline
+    print("Run 1")
+    book.set_board("X", ".......,.......,.......,.......,.......,.......")
+    book.build_oracle(n_moves)
 
-        last_move = "X"
+    # Build for O
+    # Here we have to run it 7 times for each of the starting X moves
 
-    board = Board()
-    board.create_board_from_str(board_str)
-    root = State(".", last_move)
-    root.compute_evaluation(board)
+    print("Run 2")
+    book.set_board("O", "r......,.......,.......,.......,.......,.......")
+    book.build_oracle(n_moves)
+    print("Run 3")
+    book.set_board("O", ".r.....,.......,.......,.......,.......,.......")
+    book.build_oracle(n_moves)
+    print("Run 4")
+    book.set_board("O", "..r....,.......,.......,.......,.......,.......")
+    book.build_oracle(n_moves)
+    print("Run 5")
+    book.set_board("O", "...r...,.......,.......,.......,.......,.......")
+    book.build_oracle(n_moves)
 
-    alpha_beta_recursion(board, root, 0, max_depth, None, None)
-
-    # tree_search_print(board, root)
-    # tree_print(root)
-
-    print(root.opt_child)
-    print(board.n_states)
-
-    return
+    # Write
+    book.write_oracle("output.txt")
 
 
-if sys.argv[3] == "M":
+start_time = time.time()
+Four_Eyes(sys.argv[1], sys.argv[2], start_time)
 
-    minimax_wrapper(sys.argv[1], sys.argv[2], int(sys.argv[4]))
-
-elif sys.argv[3] == "A":
-
-    alpha_beta_wrapper(sys.argv[1], sys.argv[2], int(sys.argv[4]))
+# print(f"Program ran for {time.time() - start_time}")
+# oracle_builder()
