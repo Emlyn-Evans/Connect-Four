@@ -32,7 +32,7 @@ class Four_Eyes:
     def __init__(self, board_str, turn, start_time):
 
         self.start_time = start_time
-        self.cutoff_time = 0.8
+        self.cutoff_time = 0.75
 
         if turn == "red":
 
@@ -48,6 +48,7 @@ class Four_Eyes:
         self.trans_table = Trans_Table(8388593)
         self.book = Book()
         self.book.read_oracle()
+        self.book.fix_mistakes()
 
         # print(self.board)
 
@@ -65,17 +66,18 @@ class Four_Eyes:
             self.root.opt_col = win_col
 
         # Check if the position is in book
-        player_pos = self.board.pos
-
-        if self.root.player == "O":
-
-            player_pos = self.board.get_opponent_pos()
-
-        key = self.board.board + player_pos
+        key = self.board.get_key()
 
         if key in self.book.oracle:
 
             self.root.opt_col = self.book.oracle[key]
+
+        # Check if the symmetrical position is in the oracle
+        sym_key = self.board.bit_symmetry_key()
+
+        if sym_key in self.book.oracle:
+
+            self.root.opt_col = 6 - self.book.oracle[sym_key]
 
         # If not, we need to search
         if self.root.opt_col is None:
@@ -200,6 +202,10 @@ class Four_Eyes:
 
         # Transposition Table entry handling
         ret = self.trans_table.get_value(self.board.get_key())
+
+        if ret is None:
+
+            ret = self.trans_table.get_value(self.board.bit_symmetry_key())
 
         if ret is not None:
 
@@ -353,29 +359,31 @@ def oracle_builder():
 
     book = Book()
     book.read_oracle()
+    book.fix_mistakes()
+
+    n_moves = 3
 
     # Build for X
     # Here we can start from the baseline
+    print("Run 1")
     book.set_board("X", ".......,.......,.......,.......,.......,.......")
-    book.build_oracle(5)
+    book.build_oracle(n_moves)
 
     # Build for O
     # Here we have to run it 7 times for each of the starting X moves
 
+    print("Run 2")
     book.set_board("O", "r......,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
+    book.build_oracle(n_moves)
+    print("Run 3")
     book.set_board("O", ".r.....,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
+    book.build_oracle(n_moves)
+    print("Run 4")
     book.set_board("O", "..r....,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
+    book.build_oracle(n_moves)
+    print("Run 5")
     book.set_board("O", "...r...,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
-    book.set_board("O", "....r..,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
-    book.set_board("O", ".....r.,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
-    book.set_board("O", "......r,.......,.......,.......,.......,.......")
-    book.build_oracle(3)
+    book.build_oracle(n_moves)
 
     # Write
     book.write_oracle("output.txt")
